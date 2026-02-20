@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+coverage/
+dist/
+dev-dist/
+
+# VCS
+.git/
+.gitignore
+
+# Local/dev files
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Env files (do not bake secrets into image)
+.env
+.env.*
+!.env.example
+
+# Docs and local instructions (not needed in runtime image)
+docs/
+AGENTS.md
+README.md
+
+# Test artifacts
+src/tests/

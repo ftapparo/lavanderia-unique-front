@@ -1,0 +1,19 @@
+@import "./theme/theme.css";
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-header {
+    background: var(--gradient-header);
+  }
+}
