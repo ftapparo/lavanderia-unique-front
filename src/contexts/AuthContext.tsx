@@ -1,70 +1,148 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { api, setApiAuthToken, type ApiUser } from "@/services/api";
+import { AUTH_STORAGE_KEYS } from "@/config/app-config";
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: string | null;
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  profile: ApiUser | null;
+  accessToken: string | null;
+  login: (identity: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+  register: (input: { name: string; cpf: string; email: string; phone?: string; password: string; rememberMe?: boolean }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const AUTH_KEY = "tpl_auth";
-const USER_KEY = "tpl_user";
+const ACCESS_TOKEN_KEY = AUTH_STORAGE_KEYS.auth;
+const USER_KEY = AUTH_STORAGE_KEYS.user;
+const REFRESH_TOKEN_KEY = `${AUTH_STORAGE_KEYS.auth}_refresh`;
 
-const getStoredAuthState = () => {
-  const localAuth = localStorage.getItem(AUTH_KEY) === "true";
+const loadAuthSnapshot = () => {
+  const localToken = localStorage.getItem(ACCESS_TOKEN_KEY);
   const localUser = localStorage.getItem(USER_KEY);
-  if (localAuth && localUser) {
-    return { isAuthenticated: true, user: localUser };
+  const localRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (localToken && localUser) {
+    return { token: localToken, user: localUser, refreshToken: localRefreshToken, persistent: true };
   }
 
-  const sessionAuth = sessionStorage.getItem(AUTH_KEY) === "true";
+  const sessionToken = sessionStorage.getItem(ACCESS_TOKEN_KEY);
   const sessionUser = sessionStorage.getItem(USER_KEY);
-  if (sessionAuth && sessionUser) {
-    return { isAuthenticated: true, user: sessionUser };
+  const sessionRefreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  if (sessionToken && sessionUser) {
+    return { token: sessionToken, user: sessionUser, refreshToken: sessionRefreshToken, persistent: false };
   }
 
-  return { isAuthenticated: false, user: null as string | null };
+  return { token: null, user: null, refreshToken: null, persistent: false };
+};
+
+const clearStorages = () => {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => getStoredAuthState().isAuthenticated);
-  const [user, setUser] = useState<string | null>(() => getStoredAuthState().user);
+  const initial = loadAuthSnapshot();
 
-  const login = useCallback(async (username: string, password: string, rememberMe = false) => {
-    const normalizedUser = username.trim().toUpperCase();
-    const normalizedPassword = password.trim();
+  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(initial.token));
+  const [user, setUser] = useState<string | null>(initial.user);
+  const [profile, setProfile] = useState<ApiUser | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(initial.token);
 
-    if (!normalizedUser || !normalizedPassword) {
-      return { success: false, error: "Informe usuario e senha." };
-    }
+  useEffect(() => {
+    setApiAuthToken(accessToken);
+  }, [accessToken]);
 
-    setIsAuthenticated(true);
-    setUser(normalizedUser);
-
+  const persist = (token: string, refreshToken: string, userName: string, rememberMe: boolean) => {
     const targetStorage = rememberMe ? localStorage : sessionStorage;
     const otherStorage = rememberMe ? sessionStorage : localStorage;
 
-    targetStorage.setItem(AUTH_KEY, "true");
-    targetStorage.setItem(USER_KEY, normalizedUser);
-    otherStorage.removeItem(AUTH_KEY);
-    otherStorage.removeItem(USER_KEY);
+    targetStorage.setItem(ACCESS_TOKEN_KEY, token);
+    targetStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    targetStorage.setItem(USER_KEY, userName);
 
-    return { success: true };
+    otherStorage.removeItem(ACCESS_TOKEN_KEY);
+    otherStorage.removeItem(REFRESH_TOKEN_KEY);
+    otherStorage.removeItem(USER_KEY);
+  };
+
+  const login = useCallback(async (identity: string, password: string, rememberMe = false) => {
+    if (!identity.trim() || !password.trim()) {
+      return { success: false, error: "Informe identificacao e senha." };
+    }
+
+    try {
+      const payload = await api.auth.login({
+        identity: identity.trim(),
+        password: password.trim(),
+      });
+
+      persist(payload.accessToken, payload.refreshToken, payload.user.name, rememberMe);
+      setAccessToken(payload.accessToken);
+      setIsAuthenticated(true);
+      setUser(payload.user.name);
+      setProfile(payload.user);
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : "Falha no login." };
+    }
+  }, []);
+
+  const register = useCallback(async (input: { name: string; cpf: string; email: string; phone?: string; password: string; rememberMe?: boolean }) => {
+    try {
+      const payload = await api.auth.register({
+        name: input.name,
+        cpf: input.cpf,
+        email: input.email,
+        phone: input.phone,
+        password: input.password,
+      });
+
+      persist(payload.accessToken, payload.refreshToken, payload.user.name, Boolean(input.rememberMe));
+      setAccessToken(payload.accessToken);
+      setIsAuthenticated(true);
+      setUser(payload.user.name);
+      setProfile(payload.user);
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : "Falha no cadastro." };
+    }
   }, []);
 
   const logout = useCallback(async () => {
     setIsAuthenticated(false);
     setUser(null);
-    sessionStorage.removeItem(AUTH_KEY);
-    sessionStorage.removeItem(USER_KEY);
-    localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(USER_KEY);
+    setProfile(null);
+    setAccessToken(null);
+    clearStorages();
   }, []);
 
+  useEffect(() => {
+    const syncProfile = async () => {
+      if (!accessToken) {
+        return;
+      }
+
+      try {
+        const me = await api.auth.me();
+        setProfile(me);
+        setUser(me.name);
+      } catch {
+        await logout();
+      }
+    };
+
+    void syncProfile();
+  }, [accessToken, logout]);
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, profile, accessToken, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

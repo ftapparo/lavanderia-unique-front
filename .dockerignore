@@ -16,9 +16,9 @@ dev-dist/
 .DS_Store
 *.log
 
-# Env files (do not bake secrets into image)
-.env
+# Env files (allow .env for build-time variables)
 .env.*
+!.env
 !.env.example
 
 # Docs and local instructions (not needed in runtime image)

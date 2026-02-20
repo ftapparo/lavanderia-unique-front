@@ -8,8 +8,8 @@ dev-dist/
 coverage/
 
 # Environment files
-.env
 .env.*
+!.env
 !.env.example
 
 # Logs

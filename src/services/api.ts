@@ -1,15 +1,16 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
-import { APP_API_BASE_URL, AUTH_STORAGE_KEYS } from "@/config/app-config";
+import { APP_API_BASE_URL } from "@/config/app-config";
 
 interface ApiResponse<T> {
   data: T;
   message: string | null;
-  errors: string | null;
+  errors: unknown | null;
 }
 
 type ApiError = Error & { status?: number; payload?: unknown };
 
 const BASE_URL = APP_API_BASE_URL.replace(/\/+$/, "");
+let authToken: string | null = null;
 
 const http: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -27,11 +28,11 @@ const requestContextInterceptor = (config: any) => {
     config.headers = config.headers || {};
     (config.headers as Record<string, string>)["x-request-id"] = requestId;
 
-    const user = window.sessionStorage.getItem(AUTH_STORAGE_KEYS.user) || window.localStorage.getItem(AUTH_STORAGE_KEYS.user);
-    if (user && user.trim()) {
-      (config.headers as Record<string, string>)["x-user"] = user.trim();
+    if (authToken) {
+      (config.headers as Record<string, string>).authorization = `Bearer ${authToken}`;
     }
   }
+
   return config;
 };
 
@@ -89,12 +90,64 @@ const requestFrom = async <T>(
 const request = async <T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<T> =>
   requestFrom<T>(http, method, path, body);
 
+export const setApiAuthToken = (token: string | null) => {
+  authToken = token;
+};
+
 export interface HealthResponse {
   status: string;
   environment: string;
 }
 
+export interface ApiUser {
+  id: string;
+  name: string;
+  cpf: string;
+  email: string;
+  phone: string | null;
+  role: "USER" | "ADMIN";
+}
+
+export interface AuthPayload {
+  accessToken: string;
+  refreshToken: string;
+  user: ApiUser;
+}
+
+export interface UnitPayload {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface MembershipPayload {
+  id: string;
+  userId: string;
+  unitId: string;
+  unitName: string;
+  unitCode: string;
+  profile: string;
+  startDate: string;
+  endDate: string | null;
+  active: boolean;
+}
+
 export const api = {
   health: () => request<HealthResponse>("GET", "/health"),
   healthcheck: () => request<HealthResponse>("GET", "/healthcheck"),
+  auth: {
+    register: (input: { name: string; cpf: string; email: string; phone?: string; password: string }) =>
+      request<AuthPayload>("POST", "/auth/register", input),
+    login: (input: { identity: string; password: string }) =>
+      request<AuthPayload>("POST", "/auth/login", input),
+    refresh: (refreshToken: string) =>
+      request<{ accessToken: string; refreshToken: string }>("POST", "/auth/refresh", { refreshToken }),
+    me: () => request<ApiUser>("GET", "/auth/me"),
+  },
+  units: {
+    list: () => request<UnitPayload[]>("GET", "/units"),
+  },
+  memberships: {
+    list: () => request<MembershipPayload[]>("GET", "/unit-memberships"),
+  },
 };

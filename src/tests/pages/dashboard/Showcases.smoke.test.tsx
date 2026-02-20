@@ -26,13 +26,29 @@ const { notifyMock, toastMock } = vi.hoisted(() => ({
 
 vi.mock("@/lib/notify", () => ({ notify: notifyMock }));
 vi.mock("@/components/ui/sonner", () => ({ toast: toastMock }));
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    profile: {
+      name: "ADMIN",
+      role: "ADMIN",
+      email: "admin@unique.local",
+      cpf: "00000000000",
+    },
+  }),
+}));
+vi.mock("@/services/api", () => ({
+  api: {
+    units: { list: vi.fn().mockResolvedValue([]) },
+    memberships: { list: vi.fn().mockResolvedValue([]) },
+  },
+}));
 
 describe("dashboard pages smoke", () => {
   const renderWithTooltip = (ui: ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
 
   it("renders main showcase pages", () => {
     renderWithTooltip(<DashboardHome />);
-    expect(screen.getByText("Visao Geral do Template")).toBeInTheDocument();
+    expect(screen.getByText("Painel Inicial")).toBeInTheDocument();
 
     renderWithTooltip(<ComponentsShowcase />);
     expect(screen.getByText("Showcase de Componentes 1")).toBeInTheDocument();
