@@ -6,7 +6,7 @@ import { Trash2 } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, useSidebar } from "@/components/ui/primitives";
-import { api, type MachinePairPayload, type MembershipPayload, type ReservationPayload, type ReservationStatus, type UnitPayload } from "@/services/api";
+import { api, type LaundrySessionDetailsPayload, type LaundrySessionPayload, type MachinePairPayload, type MembershipPayload, type ReservationPayload, type ReservationStatus, type UnitPayload } from "@/services/api";
 import { notify } from "@/lib/notify";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -65,6 +65,8 @@ export default function ReservationsPage() {
   const [selectedReservation, setSelectedReservation] = useState<ReservationPayload | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelTargetReservation, setCancelTargetReservation] = useState<ReservationPayload | null>(null);
+  const [activeSessionOpen, setActiveSessionOpen] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string>("");
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -100,6 +102,43 @@ export default function ReservationsPage() {
     },
     onError: (error) => {
       notify.error("Falha ao cancelar reserva.", {
+        description: error instanceof Error ? error.message : "Erro desconhecido.",
+      });
+    },
+  });
+
+  const checkInReservation = useMutation({
+    mutationFn: (id: string) => api.reservations.checkIn(id),
+    onSuccess: async (session) => {
+      notify.success("Check-in realizado e energia liberada.");
+      setActiveSessionId(session.id);
+      setActiveSessionOpen(true);
+      await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+    },
+    onError: (error) => {
+      notify.error("Falha ao realizar check-in.", {
+        description: error instanceof Error ? error.message : "Erro desconhecido.",
+      });
+    },
+  });
+
+  const activeSessionQuery = useQuery({
+    queryKey: ["session", activeSessionId],
+    queryFn: () => api.sessions.getById(activeSessionId),
+    enabled: activeSessionOpen && Boolean(activeSessionId),
+    refetchInterval: activeSessionOpen ? 15000 : false,
+  });
+
+  const finishSession = useMutation({
+    mutationFn: (sessionId: string) => api.sessions.finish(sessionId),
+    onSuccess: async () => {
+      notify.success("Sessao finalizada com sucesso.");
+      setActiveSessionOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      await queryClient.invalidateQueries({ queryKey: ["session", activeSessionId] });
+    },
+    onError: (error) => {
+      notify.error("Falha ao finalizar sessao.", {
         description: error instanceof Error ? error.message : "Erro desconhecido.",
       });
     },
@@ -223,6 +262,11 @@ export default function ReservationsPage() {
     if (!selectedReservation) return null;
     return machinePairs.find((pair) => pair.id === selectedReservation.machinePairId) || null;
   }, [selectedReservation, machinePairs]);
+
+  const canCheckIn = (reservation: ReservationPayload | null): boolean => {
+    if (!reservation) return false;
+    return reservation.status === "CONFIRMED" || reservation.status === "PENDING";
+  };
 
   const currentLabel = effectiveViewMode === "MENSAL"
     ? capitalize(format(selectedDate, "MMMM yyyy", { locale: ptBR }))
@@ -573,6 +617,16 @@ export default function ReservationsPage() {
           ) : null}
 
           <DialogFooter>
+            {selectedReservation && canCheckIn(selectedReservation) ? (
+              <Button
+                onClick={() => {
+                  void checkInReservation.mutateAsync(selectedReservation.id);
+                }}
+                disabled={checkInReservation.isPending}
+              >
+                {checkInReservation.isPending ? "Realizando check-in..." : "Fazer check-in"}
+              </Button>
+            ) : null}
             {selectedReservation && canCancel(selectedReservation.status) ? (
               <Button
                 variant="destructive"
@@ -620,6 +674,69 @@ export default function ReservationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={activeSessionOpen} onOpenChange={setActiveSessionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sessao Ativa</DialogTitle>
+            <DialogDescription>
+              Monitoramento da sessao em andamento com status de energia dos dispositivos.
+            </DialogDescription>
+          </DialogHeader>
+
+          {activeSessionQuery.isLoading ? (
+            <p className="typo-caption text-muted-foreground">Carregando sessao...</p>
+          ) : null}
+
+          {activeSessionQuery.isError ? (
+            <p className="typo-caption text-destructive">
+              {activeSessionQuery.error instanceof Error ? activeSessionQuery.error.message : "Falha ao carregar sessao."}
+            </p>
+          ) : null}
+
+          {activeSessionQuery.data ? (
+            <SessionDetailsContent session={activeSessionQuery.data} />
+          ) : null}
+
+          <DialogFooter>
+            {activeSessionQuery.data ? (
+              <Button
+                variant="destructive"
+                onClick={() => void finishSession.mutateAsync(activeSessionQuery.data!.id)}
+                disabled={finishSession.isPending}
+              >
+                {finishSession.isPending ? "Finalizando..." : "Finalizar sessao"}
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => setActiveSessionOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
+  );
+}
+
+function SessionDetailsContent({ session }: { session: LaundrySessionDetailsPayload }) {
+  return (
+    <div className="space-y-2 typo-caption">
+      <p><strong>Par de maquinas:</strong> {session.machinePairName}</p>
+      <p><strong>Morador:</strong> {session.userName}</p>
+      <p><strong>Apartamento:</strong> {session.unitName}</p>
+      <p><strong>Status da sessao:</strong> {session.status}</p>
+      <p><strong>Check-in:</strong> {formatDateTime(session.checkinAt)}</p>
+
+      <div className="space-y-2 rounded-md border p-2">
+        {session.devices.map((device) => (
+          <div key={device.deviceId} className="rounded border p-2">
+            <p><strong>{device.machineType === "WASHER" ? "Lavadora" : "Secadora"}:</strong> {device.machineName}</p>
+            <p><strong>Energia:</strong> {device.isOn ? "Ligada" : "Desligada"}</p>
+            <p><strong>Potencia:</strong> {device.powerWatts} W</p>
+            <p><strong>Consumo:</strong> {device.energyKwh} kWh</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

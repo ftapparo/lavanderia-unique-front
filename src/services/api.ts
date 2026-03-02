@@ -183,6 +183,43 @@ export interface ReservationPayload {
   canceledAt: string | null;
 }
 
+export type LaundrySessionStatus = "ACTIVE" | "FINISHED" | "FORCED_FINISHED";
+
+export interface LaundrySessionPayload {
+  id: string;
+  reservationId: string;
+  reservationStartAt: string;
+  reservationEndAt: string;
+  unitId: string;
+  unitName: string;
+  unitCode: string;
+  machinePairId: string;
+  machinePairName: string;
+  userId: string;
+  userName: string;
+  checkinAt: string;
+  startedAt: string;
+  finishedAt: string | null;
+  status: LaundrySessionStatus;
+  overtimeStartedAt: string | null;
+  overtimeEndedAt: string | null;
+}
+
+export interface LaundrySessionDevicePayload {
+  machineId: string;
+  machineName: string;
+  machineType: MachineType;
+  deviceId: string;
+  isOn: boolean;
+  powerWatts: number;
+  energyKwh: number;
+  sampledAt: string;
+}
+
+export interface LaundrySessionDetailsPayload extends LaundrySessionPayload {
+  devices: LaundrySessionDevicePayload[];
+}
+
 export const api = {
   health: () => request<HealthResponse>("GET", "/health"),
   healthcheck: () => request<HealthResponse>("GET", "/healthcheck"),
@@ -234,5 +271,13 @@ export const api = {
       request<ReservationPayload>("POST", "/reservations", input),
     cancel: (id: string) =>
       request<ReservationPayload>("POST", `/reservations/${id}/cancel`),
+    checkIn: (id: string) =>
+      request<LaundrySessionPayload>("POST", `/reservations/${id}/check-in`),
+  },
+  sessions: {
+    getById: (id: string) =>
+      request<LaundrySessionDetailsPayload>("GET", `/sessions/${id}`),
+    finish: (id: string) =>
+      request<LaundrySessionPayload>("POST", `/sessions/${id}/finish`),
   },
 };
