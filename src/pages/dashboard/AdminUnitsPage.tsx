@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@/components/ui/primitives";
 import { api, type UnitPayload } from "@/services/api";
 import { notify } from "@/lib/notify";
+import UnitsGenerationCard from "@/components/dashboard/units/UnitsGenerationCard";
+import UnitsTableCard from "@/components/dashboard/units/UnitsTableCard";
 
 const toNumber = (value: string): number => Number.parseInt(value, 10);
 
@@ -123,71 +124,24 @@ export default function AdminUnitsPage() {
         description="Defina intervalo de andares e unidades por andar para gerar codigos automaticamente."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Parametros de Geracao</CardTitle>
-          <CardDescription>Informe primeiro andar, ultimo andar e quantidade de unidades por andar.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
-          <div className="space-y-2">
-            <Label htmlFor="start-floor">Primeiro andar</Label>
-            <Input id="start-floor" value={startFloor} onChange={(e) => setStartFloor(e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="end-floor">Ultimo andar</Label>
-            <Input id="end-floor" value={endFloor} onChange={(e) => setEndFloor(e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="units-per-floor">Unidades por andar</Label>
-            <Input id="units-per-floor" value={unitsPerFloor} onChange={(e) => setUnitsPerFloor(e.target.value)} inputMode="numeric" />
-          </div>
-          <Button disabled={createUnit.isPending} onClick={() => void createRange()}>
-            {createUnit.isPending ? "Gerando..." : "Gerar unidades"}
-          </Button>
-        </CardContent>
-      </Card>
+      <UnitsGenerationCard
+        startFloor={startFloor}
+        endFloor={endFloor}
+        unitsPerFloor={unitsPerFloor}
+        isSubmitting={createUnit.isPending}
+        onStartFloorChange={setStartFloor}
+        onEndFloorChange={setEndFloor}
+        onUnitsPerFloorChange={setUnitsPerFloor}
+        onGenerate={() => void createRange()}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tabela de Unidades</CardTitle>
-          <CardDescription>Use ocultar para retirar da operacao sem apagar historico. Excluir remove permanentemente.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b pb-2 typo-caption text-muted-foreground">
-            <div>Codigo</div>
-            <div>Andar</div>
-            <div>Unidade</div>
-            <div>Nome</div>
-            <div>Status</div>
-            <div>Acoes</div>
-          </div>
-
-          {units.map((unit: UnitPayload) => (
-            <div key={unit.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 rounded-md border p-3">
-              <p className="typo-label text-primary">{unit.code}</p>
-              <p className="typo-caption">{unit.floor ?? "-"}</p>
-              <p className="typo-caption">{unit.unitNumber ?? "-"}</p>
-              <p className="typo-caption">{unit.name}</p>
-              <p className="typo-caption">{unit.active ? "Ativa" : "Oculta"}</p>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => updateUnit.mutate({ id: unit.id, active: !unit.active })}
-                  disabled={updateUnit.isPending}
-                >
-                  {unit.active ? "Ocultar" : "Mostrar"}
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => removeUnit.mutate(unit.id)} disabled={removeUnit.isPending}>
-                  Excluir
-                </Button>
-              </div>
-            </div>
-          ))}
-
-          {units.length === 0 ? <p className="typo-caption text-muted-foreground">Nenhuma unidade cadastrada.</p> : null}
-        </CardContent>
-      </Card>
+      <UnitsTableCard
+        units={units}
+        isUpdating={updateUnit.isPending}
+        isRemoving={removeUnit.isPending}
+        onToggleActive={(unit) => updateUnit.mutate({ id: unit.id, active: !unit.active })}
+        onRemove={(unit) => removeUnit.mutate(unit.id)}
+      />
     </PageContainer>
   );
 }

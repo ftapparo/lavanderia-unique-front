@@ -2,24 +2,37 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
+import { Button } from "@/components/ui/primitives";
 import { api, type MachinePayload, type MachineType } from "@/services/api";
 import { notify } from "@/lib/notify";
+import MachineCard from "@/components/dashboard/machines/MachineCard";
+import MachineFormDialog from "@/components/dashboard/machines/MachineFormDialog";
+
+type MachineFormValues = {
+  number: string;
+  brand: string;
+  model: string;
+  type: MachineType;
+  tuyaDeviceId: string;
+};
+
+const emptyForm: MachineFormValues = {
+  number: "",
+  brand: "",
+  model: "",
+  type: "WASHER",
+  tuyaDeviceId: "",
+};
 
 const parsePositiveInt = (value: string): number => Number.parseInt(value, 10);
 
 export default function AdminMachinesPage() {
   const queryClient = useQueryClient();
-  const [number, setNumber] = useState("");
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [type, setType] = useState<MachineType>("WASHER");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState<MachineFormValues>(emptyForm);
 
   const [editId, setEditId] = useState<string | null>(null);
-  const [editNumber, setEditNumber] = useState("");
-  const [editBrand, setEditBrand] = useState("");
-  const [editModel, setEditModel] = useState("");
-  const [editType, setEditType] = useState<MachineType>("WASHER");
+  const [editForm, setEditForm] = useState<MachineFormValues>(emptyForm);
 
   const machinesQuery = useQuery({ queryKey: ["admin-machines"], queryFn: api.machines.list });
   const machines = useMemo(() => machinesQuery.data || [], [machinesQuery.data]);
@@ -30,17 +43,16 @@ export default function AdminMachinesPage() {
 
   const createMachine = useMutation({
     mutationFn: () => api.machines.create({
-      number: parsePositiveInt(number),
-      brand,
-      model,
-      type,
+      number: parsePositiveInt(createForm.number),
+      brand: createForm.brand,
+      model: createForm.model,
+      type: createForm.type,
+      tuyaDeviceId: createForm.tuyaDeviceId.trim() || undefined,
     }),
     onSuccess: async () => {
       notify.success("Maquina criada.");
-      setNumber("");
-      setBrand("");
-      setModel("");
-      setType("WASHER");
+      setCreateForm(emptyForm);
+      setCreateOpen(false);
       await reload();
     },
     onError: (error) => notify.error("Falha ao criar maquina.", { description: error instanceof Error ? error.message : "Erro." }),
@@ -48,10 +60,11 @@ export default function AdminMachinesPage() {
 
   const updateMachine = useMutation({
     mutationFn: () => api.machines.update(String(editId), {
-      number: parsePositiveInt(editNumber),
-      brand: editBrand,
-      model: editModel,
-      type: editType,
+      number: parsePositiveInt(editForm.number),
+      brand: editForm.brand,
+      model: editForm.model,
+      type: editForm.type,
+      tuyaDeviceId: editForm.tuyaDeviceId.trim() || null,
     }),
     onSuccess: async () => {
       notify.success("Maquina atualizada.");
@@ -79,6 +92,17 @@ export default function AdminMachinesPage() {
     onError: (error) => notify.error("Falha ao remover maquina.", { description: error instanceof Error ? error.message : "Erro." }),
   });
 
+  const handleEdit = (machine: MachinePayload) => {
+    setEditId(machine.id);
+    setEditForm({
+      number: String(machine.number),
+      brand: machine.brand,
+      model: machine.model,
+      type: machine.type,
+      tuyaDeviceId: machine.tuyaDeviceId || "",
+    });
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -86,92 +110,58 @@ export default function AdminMachinesPage() {
         description="Cadastro de maquinas sem vinculo de unidade."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nova Maquina</CardTitle>
-          <CardDescription>Informe numero, marca, modelo e tipo.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[1fr_2fr_2fr_1fr_auto] md:items-end">
-          <div className="space-y-2">
-            <Label>Numero</Label>
-            <Input value={number} onChange={(e) => setNumber(e.target.value)} inputMode="numeric" />
-          </div>
-          <div className="space-y-2">
-            <Label>Marca</Label>
-            <Input value={brand} onChange={(e) => setBrand(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Modelo</Label>
-            <Input value={model} onChange={(e) => setModel(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Tipo</Label>
-            <Select value={type} onValueChange={(value) => setType(value as MachineType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="WASHER">Lavadora</SelectItem>
-                <SelectItem value="DRYER">Secadora</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={() => createMachine.mutate()} disabled={createMachine.isPending}>Criar</Button>
-        </CardContent>
-      </Card>
+      <div className="flex justify-end">
+        <Button onClick={() => setCreateOpen(true)}>Adicionar maquina</Button>
+      </div>
 
-      <Card>
-        <CardHeader><CardTitle>Maquinas Cadastradas</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {machines.map((machine: MachinePayload) => (
-            <div key={machine.id} className="rounded-md border p-3">
-              {editId === machine.id ? (
-                <div className="grid gap-3 md:grid-cols-[1fr_2fr_2fr_1fr_auto_auto] md:items-end">
-                  <Input value={editNumber} onChange={(e) => setEditNumber(e.target.value)} inputMode="numeric" />
-                  <Input value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
-                  <Input value={editModel} onChange={(e) => setEditModel(e.target.value)} />
-                  <Select value={editType} onValueChange={(value) => setEditType(value as MachineType)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WASHER">Lavadora</SelectItem>
-                      <SelectItem value="DRYER">Secadora</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button size="sm" onClick={() => updateMachine.mutate()}>Salvar</Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditId(null)}>Cancelar</Button>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="typo-label text-primary">#{machine.number} - {machine.brand} {machine.model}</p>
-                    <p className="typo-caption text-muted-foreground">
-                      {machine.type === "WASHER" ? "Lavadora" : "Secadora"} | {machine.active ? "Ativa" : "Inativa"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditId(machine.id);
-                        setEditNumber(String(machine.number));
-                        setEditBrand(machine.brand);
-                        setEditModel(machine.model);
-                        setEditType(machine.type);
-                      }}
-                    >
-                      Editar
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => toggleMachine.mutate(machine)}>
-                      {machine.active ? "Inativar" : "Ativar"}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => removeMachine.mutate(machine.id)}>Remover</Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-          {machines.length === 0 ? <p className="typo-caption text-muted-foreground">Nenhuma maquina cadastrada.</p> : null}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div>
+          <h2 className="typo-title">Maquinas cadastradas</h2>
+          <p className="typo-caption text-muted-foreground">Cada card representa uma maquina individual.</p>
+        </div>
+
+        {machines.length === 0 ? (
+          <p className="typo-caption text-muted-foreground">Nenhuma maquina cadastrada.</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {machines.map((machine) => (
+              <MachineCard
+                key={machine.id}
+                machine={machine}
+                onEdit={handleEdit}
+                onToggleActive={(item) => toggleMachine.mutate(item)}
+                onRemove={(item) => removeMachine.mutate(item.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <MachineFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Nova Maquina"
+        description="Informe numero, marca, modelo, tipo e ID da tomada Tuya."
+        submitLabel="Criar"
+        loadingLabel="Criando..."
+        isSubmitting={createMachine.isPending}
+        values={createForm}
+        onChange={setCreateForm}
+        onSubmit={() => createMachine.mutate()}
+      />
+
+      <MachineFormDialog
+        open={Boolean(editId)}
+        onOpenChange={(open) => { if (!open) setEditId(null); }}
+        title="Editar Maquina"
+        description="Atualize os dados da maquina e o vinculo da tomada Tuya."
+        submitLabel="Salvar"
+        loadingLabel="Salvando..."
+        isSubmitting={updateMachine.isPending}
+        values={editForm}
+        onChange={setEditForm}
+        onSubmit={() => updateMachine.mutate()}
+      />
     </PageContainer>
   );
 }

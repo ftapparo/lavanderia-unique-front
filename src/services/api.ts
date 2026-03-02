@@ -141,6 +141,7 @@ export interface MachinePayload {
   model: string;
   name: string;
   type: MachineType;
+  tuyaDeviceId: string | null;
   active: boolean;
 }
 
@@ -267,7 +268,7 @@ export const api = {
   },
   reservations: {
     list: () => request<ReservationPayload[]>("GET", "/reservations"),
-    create: (input: { unitId: string; machinePairId: string; startAt: string }) =>
+    create: (input: { unitId: string; machinePairId: string; startAt: string; userId?: string }) =>
       request<ReservationPayload>("POST", "/reservations", input),
     cancel: (id: string) =>
       request<ReservationPayload>("POST", `/reservations/${id}/cancel`),

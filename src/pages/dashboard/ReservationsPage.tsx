@@ -5,10 +5,14 @@ import { ptBR } from "date-fns/locale";
 import { Trash2 } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, useSidebar } from "@/components/ui/primitives";
-import { api, type LaundrySessionDetailsPayload, type LaundrySessionPayload, type MachinePairPayload, type MembershipPayload, type ReservationPayload, type ReservationStatus, type UnitPayload } from "@/services/api";
+import { Badge, Button, useSidebar } from "@/components/ui/primitives";
+import { api, type MachinePairPayload, type MembershipPayload, type ReservationPayload, type ReservationStatus, type UnitPayload, type UserListItemPayload } from "@/services/api";
 import { notify } from "@/lib/notify";
 import { useAuth } from "@/contexts/AuthContext";
+import ReservationBookingDialog from "@/components/dashboard/reservations/ReservationBookingDialog";
+import ReservationDetailsDialog from "@/components/dashboard/reservations/ReservationDetailsDialog";
+import ReservationCancelDialog from "@/components/dashboard/reservations/ReservationCancelDialog";
+import ReservationActiveSessionDialog from "@/components/dashboard/reservations/ReservationActiveSessionDialog";
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
   PENDING: "Pendente",
@@ -61,6 +65,7 @@ export default function ReservationsPage() {
   const [bookingStartAt, setBookingStartAt] = useState<string>("");
   const [bookingMachinePairId, setBookingMachinePairId] = useState<string>("");
   const [bookingUnitId, setBookingUnitId] = useState<string>("");
+  const [bookingUserId, setBookingUserId] = useState<string>("");
   const [reservationDetailsOpen, setReservationDetailsOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<ReservationPayload | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -77,14 +82,16 @@ export default function ReservationsPage() {
   const unitsQuery = useQuery({ queryKey: ["units"], queryFn: api.units.list });
   const machinePairsQuery = useQuery({ queryKey: ["machine-pairs"], queryFn: api.machinePairs.list });
   const membershipsQuery = useQuery({ queryKey: ["unit-memberships"], queryFn: api.memberships.list });
+  const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: api.users.list, enabled: isAdmin });
   const reservationsQuery = useQuery({ queryKey: ["reservations"], queryFn: api.reservations.list });
 
   const createReservation = useMutation({
-    mutationFn: (input: { unitId: string; machinePairId: string; startAt: string }) => api.reservations.create(input),
+    mutationFn: (input: { unitId: string; machinePairId: string; startAt: string; userId?: string }) => api.reservations.create(input),
     onSuccess: async () => {
       notify.success("Reserva criada com sucesso.");
       setBookingOpen(false);
       setBookingMachinePairId("");
+      setBookingUserId("");
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
     },
     onError: (error) => {
@@ -147,6 +154,7 @@ export default function ReservationsPage() {
   const units = (unitsQuery.data || []).filter((unit) => unit.active);
   const machinePairs = machinePairsQuery.data || [];
   const memberships = membershipsQuery.data || [];
+  const users = usersQuery.data || [];
   const allReservations = useMemo(
     () => [...(reservationsQuery.data || [])].sort(reservationSortDesc),
     [reservationsQuery.data],
@@ -167,6 +175,24 @@ export default function ReservationsPage() {
     if (!firstMembership) return null;
     return units.find((unit: UnitPayload) => unit.id === firstMembership.unitId) || null;
   }, [membershipsByPriority, units]);
+
+  const eligibleUsersForBooking = useMemo(() => {
+    if (!isAdmin || !bookingUnitId || !bookingStartAt) {
+      return [];
+    }
+    const bookingDate = bookingStartAt.slice(0, 10);
+    const eligibleUserIds = new Set(
+      memberships
+        .filter((membership) =>
+          membership.active
+          && membership.unitId === bookingUnitId
+          && membership.startDate <= bookingDate
+          && (!membership.endDate || membership.endDate >= bookingDate),
+        )
+        .map((membership) => membership.userId),
+    );
+    return users.filter((user: UserListItemPayload) => eligibleUserIds.has(user.id));
+  }, [isAdmin, bookingUnitId, bookingStartAt, memberships, users]);
 
   const mobileSwitchWidth = isSidebarExpanded ? MOBILE_SWITCH_WIDTH_EXPANDED : MOBILE_SWITCH_WIDTH_COLLAPSED;
   const isMobileCalendar = viewportWidth < mobileSwitchWidth;
@@ -217,6 +243,7 @@ export default function ReservationsPage() {
 
     if (isAdmin) {
       setBookingUnitId("");
+      setBookingUserId("");
     } else {
       setBookingUnitId(autoUnit?.id || "");
     }
@@ -240,10 +267,16 @@ export default function ReservationsPage() {
       return;
     }
 
+    if (isAdmin && !bookingUserId) {
+      notify.warning("Selecione o morador responsavel pela reserva.");
+      return;
+    }
+
     await createReservation.mutateAsync({
       unitId: targetUnitId,
       machinePairId: bookingMachinePairId,
       startAt: bookingStartAt,
+      userId: isAdmin ? bookingUserId : undefined,
     });
   };
 
@@ -520,223 +553,67 @@ export default function ReservationsPage() {
         ) : null}
       </div>
 
-      <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Reserva</DialogTitle>
-            <DialogDescription>
-              Selecione o par de maquinas e confirme o horario de 2 horas.
-            </DialogDescription>
-          </DialogHeader>
+      <ReservationBookingDialog
+        open={bookingOpen}
+        onOpenChange={setBookingOpen}
+        bookingStartAt={bookingStartAt}
+        bookingUnitId={bookingUnitId}
+        bookingUserId={bookingUserId}
+        bookingMachinePairId={bookingMachinePairId}
+        isAdmin={isAdmin}
+        autoUnit={autoUnit}
+        units={units}
+        eligibleUsers={eligibleUsersForBooking}
+        machinePairs={machinePairs}
+        creating={createReservation.isPending}
+        formatDateTime={formatDateTime}
+        onUnitChange={(value) => {
+          setBookingUnitId(value);
+          setBookingUserId("");
+        }}
+        onUserChange={setBookingUserId}
+        onPairChange={setBookingMachinePairId}
+        onSubmit={() => void handleCreate()}
+      />
 
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>Horario</Label>
-              <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption">
-                {bookingStartAt ? formatDateTime(bookingStartAt) : "-"}
-              </div>
-            </div>
+      <ReservationDetailsDialog
+        open={reservationDetailsOpen}
+        onOpenChange={setReservationDetailsOpen}
+        reservation={selectedReservation}
+        selectedPair={selectedPair}
+        canCheckIn={canCheckIn}
+        canCancel={canCancel}
+        checkinPending={checkInReservation.isPending}
+        formatDateTime={formatDateTime}
+        onCheckIn={(reservationId) => {
+          void checkInReservation.mutateAsync(reservationId);
+        }}
+        onOpenCancelDialog={openCancelDialog}
+      />
 
-            {isAdmin ? (
-              <div className="space-y-1">
-                <Label>Unidade</Label>
-                <Select value={bookingUnitId} onValueChange={setBookingUnitId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a unidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {units.map((unit) => (
-                      <SelectItem key={unit.id} value={unit.id}>
-                        {unit.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Label>Unidade</Label>
-                <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption">
-                  {autoUnit ? autoUnit.code : "Sem unidade vinculada"}
-                </div>
-              </div>
-            )}
+      <ReservationCancelDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        reservation={cancelTargetReservation}
+        cancelPending={cancelReservation.isPending}
+        formatDateTime={formatDateTime}
+        onConfirmCancel={() => void handleCancelReservation()}
+      />
 
-            <div className="space-y-1">
-              <Label>Par de maquinas</Label>
-              <Select value={bookingMachinePairId} onValueChange={setBookingMachinePairId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um par" />
-                </SelectTrigger>
-                <SelectContent>
-                  {machinePairs.map((pair: MachinePairPayload) => (
-                    <SelectItem key={pair.id} value={pair.id}>
-                      {pair.name} ({pair.washerMachineName} + {pair.dryerMachineName})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBookingOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => void handleCreate()} disabled={createReservation.isPending}>
-              {createReservation.isPending ? "Reservando..." : "Reservar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={reservationDetailsOpen} onOpenChange={setReservationDetailsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Detalhes da Reserva</DialogTitle>
-            <DialogDescription>
-              Informacoes completas da reserva selecionada.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedReservation ? (
-            <div className="space-y-2 typo-caption">
-              <p><strong>Par de maquinas:</strong> {selectedReservation.machinePairName}</p>
-              <p><strong>Lavadora:</strong> {selectedPair?.washerMachineName || "-"}</p>
-              <p><strong>Secadora:</strong> {selectedPair?.dryerMachineName || "-"}</p>
-              <p><strong>Morador:</strong> {selectedReservation.userName}</p>
-              <p><strong>Apartamento:</strong> {selectedReservation.unitName}</p>
-              <p><strong>Horario:</strong> {formatDateTime(selectedReservation.startAt)} - {format(new Date(selectedReservation.endAt), "HH:mm", { locale: ptBR })}</p>
-              <div className="flex items-center gap-2">
-                <strong>Status:</strong>
-                <Badge variant={statusVariant(selectedReservation.status)}>
-                  {STATUS_LABELS[selectedReservation.status]}
-                </Badge>
-              </div>
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            {selectedReservation && canCheckIn(selectedReservation) ? (
-              <Button
-                onClick={() => {
-                  void checkInReservation.mutateAsync(selectedReservation.id);
-                }}
-                disabled={checkInReservation.isPending}
-              >
-                {checkInReservation.isPending ? "Realizando check-in..." : "Fazer check-in"}
-              </Button>
-            ) : null}
-            {selectedReservation && canCancel(selectedReservation.status) ? (
-              <Button
-                variant="destructive"
-                onClick={() => openCancelDialog(selectedReservation)}
-              >
-                Cancelar reserva
-              </Button>
-            ) : null}
-            <Button variant="outline" onClick={() => setReservationDetailsOpen(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar Reserva</DialogTitle>
-            <DialogDescription>
-              Deseja realmente cancelar esta reserva?
-            </DialogDescription>
-          </DialogHeader>
-
-          {cancelTargetReservation ? (
-            <div className="space-y-1 typo-caption">
-              <p><strong>Par:</strong> {cancelTargetReservation.machinePairName}</p>
-              <p><strong>Morador:</strong> {cancelTargetReservation.userName}</p>
-              <p><strong>Apartamento:</strong> {cancelTargetReservation.unitName}</p>
-              <p><strong>Horario:</strong> {formatDateTime(cancelTargetReservation.startAt)} - {format(new Date(cancelTargetReservation.endAt), "HH:mm", { locale: ptBR })}</p>
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
-              Voltar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void handleCancelReservation()}
-              disabled={cancelReservation.isPending}
-            >
-              {cancelReservation.isPending ? "Cancelando..." : "Confirmar cancelamento"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={activeSessionOpen} onOpenChange={setActiveSessionOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sessao Ativa</DialogTitle>
-            <DialogDescription>
-              Monitoramento da sessao em andamento com status de energia dos dispositivos.
-            </DialogDescription>
-          </DialogHeader>
-
-          {activeSessionQuery.isLoading ? (
-            <p className="typo-caption text-muted-foreground">Carregando sessao...</p>
-          ) : null}
-
-          {activeSessionQuery.isError ? (
-            <p className="typo-caption text-destructive">
-              {activeSessionQuery.error instanceof Error ? activeSessionQuery.error.message : "Falha ao carregar sessao."}
-            </p>
-          ) : null}
-
-          {activeSessionQuery.data ? (
-            <SessionDetailsContent session={activeSessionQuery.data} />
-          ) : null}
-
-          <DialogFooter>
-            {activeSessionQuery.data ? (
-              <Button
-                variant="destructive"
-                onClick={() => void finishSession.mutateAsync(activeSessionQuery.data!.id)}
-                disabled={finishSession.isPending}
-              >
-                {finishSession.isPending ? "Finalizando..." : "Finalizar sessao"}
-              </Button>
-            ) : null}
-            <Button variant="outline" onClick={() => setActiveSessionOpen(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ReservationActiveSessionDialog
+        open={activeSessionOpen}
+        onOpenChange={setActiveSessionOpen}
+        isLoading={activeSessionQuery.isLoading}
+        errorMessage={activeSessionQuery.isError
+          ? (activeSessionQuery.error instanceof Error ? activeSessionQuery.error.message : "Falha ao carregar sessao.")
+          : null}
+        session={activeSessionQuery.data || null}
+        finishPending={finishSession.isPending}
+        formatDateTime={formatDateTime}
+        onFinish={(sessionId) => {
+          void finishSession.mutateAsync(sessionId);
+        }}
+      />
     </PageContainer>
-  );
-}
-
-function SessionDetailsContent({ session }: { session: LaundrySessionDetailsPayload }) {
-  return (
-    <div className="space-y-2 typo-caption">
-      <p><strong>Par de maquinas:</strong> {session.machinePairName}</p>
-      <p><strong>Morador:</strong> {session.userName}</p>
-      <p><strong>Apartamento:</strong> {session.unitName}</p>
-      <p><strong>Status da sessao:</strong> {session.status}</p>
-      <p><strong>Check-in:</strong> {formatDateTime(session.checkinAt)}</p>
-
-      <div className="space-y-2 rounded-md border p-2">
-        {session.devices.map((device) => (
-          <div key={device.deviceId} className="rounded border p-2">
-            <p><strong>{device.machineType === "WASHER" ? "Lavadora" : "Secadora"}:</strong> {device.machineName}</p>
-            <p><strong>Energia:</strong> {device.isOn ? "Ligada" : "Desligada"}</p>
-            <p><strong>Potencia:</strong> {device.powerWatts} W</p>
-            <p><strong>Consumo:</strong> {device.energyKwh} kWh</p>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

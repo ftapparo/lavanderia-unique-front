@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
 import { api, type MachinePayload } from "@/services/api";
 import { notify } from "@/lib/notify";
+import MachinePairCreateCard from "@/components/dashboard/machine-pairs/MachinePairCreateCard";
+import MachinePairListCard from "@/components/dashboard/machine-pairs/MachinePairListCard";
 
 export default function AdminMachinePairsPage() {
   const queryClient = useQueryClient();
@@ -50,64 +51,21 @@ export default function AdminMachinePairsPage() {
         description="Configure os pares de uso vinculando uma lavadora e uma secadora."
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Novo Par</CardTitle>
-          <CardDescription>Selecione uma lavadora e uma secadora para montar o par.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[2fr_2fr_2fr_auto] md:items-end">
-          <div className="space-y-2">
-            <Label>Nome do par</Label>
-            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Par 1" />
-          </div>
-          <div className="space-y-2">
-            <Label>Lavadora</Label>
-            <Select value={washerMachineId} onValueChange={setWasherMachineId}>
-              <SelectTrigger><SelectValue placeholder="Selecione a lavadora" /></SelectTrigger>
-              <SelectContent>
-                {washers.map((machine) => (
-                  <SelectItem key={machine.id} value={machine.id}>
-                    {machineLabel(machine)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Secadora</Label>
-            <Select value={dryerMachineId} onValueChange={setDryerMachineId}>
-              <SelectTrigger><SelectValue placeholder="Selecione a secadora" /></SelectTrigger>
-              <SelectContent>
-                {dryers.map((machine) => (
-                  <SelectItem key={machine.id} value={machine.id}>
-                    {machineLabel(machine)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={() => createPair.mutate()} disabled={createPair.isPending}>
-            {createPair.isPending ? "Criando..." : "Criar Par"}
-          </Button>
-        </CardContent>
-      </Card>
+      <MachinePairCreateCard
+        name={name}
+        washerMachineId={washerMachineId}
+        dryerMachineId={dryerMachineId}
+        washers={washers}
+        dryers={dryers}
+        isSubmitting={createPair.isPending}
+        onNameChange={setName}
+        onWasherChange={setWasherMachineId}
+        onDryerChange={setDryerMachineId}
+        onSubmit={() => createPair.mutate()}
+        machineLabel={machineLabel}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pares Cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {pairs.map((pair) => (
-            <div key={pair.id} className="rounded-md border p-3">
-              <p className="typo-label text-primary">{pair.name}</p>
-              <p className="typo-caption text-muted-foreground">
-                {pair.washerMachineName} + {pair.dryerMachineName}
-              </p>
-            </div>
-          ))}
-          {pairs.length === 0 ? <p className="typo-caption text-muted-foreground">Nenhum par cadastrado.</p> : null}
-        </CardContent>
-      </Card>
+      <MachinePairListCard pairs={pairs} />
     </PageContainer>
   );
 }
