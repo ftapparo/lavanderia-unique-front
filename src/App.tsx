@@ -13,6 +13,7 @@ import ComponentsShowcaseThree from "./pages/dashboard/ComponentsShowcaseThree";
 import ComponentsShowcaseFour from "./pages/dashboard/ComponentsShowcaseFour";
 import ComponentsShowcaseFive from "./pages/dashboard/ComponentsShowcaseFive";
 import TypographyShowcase from "./pages/dashboard/TypographyShowcase";
+import ReservationsPage from "./pages/dashboard/ReservationsPage";
 import NotFoundPage from "./pages/404";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="componentes-4" element={<ComponentsShowcaseFour />} />
               <Route path="componentes-5" element={<ComponentsShowcaseFive />} />
               <Route path="tipografia" element={<TypographyShowcase />} />
+              <Route path="reservas" element={<ReservationsPage />} />
               <Route path="configuracoes" element={<SettingsPage />} />
               <Route path="404" element={<NotFoundPage />} />
             </Route>

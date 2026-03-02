@@ -11,6 +11,12 @@ describe("app-config", () => {
   });
 
   it("uses fallback defaults when env is empty", async () => {
+    vi.stubEnv("VITE_APP_NAME", "");
+    vi.stubEnv("VITE_APP_SHORT_NAME", "");
+    vi.stubEnv("VITE_APP_DESCRIPTION", "");
+    vi.stubEnv("VITE_AUTH_STORAGE_PREFIX", "");
+    vi.stubEnv("VITE_API_BASE_URL", "");
+
     const config = await loadModule();
 
     expect(config.APP_NAME).toBe("Template Front");

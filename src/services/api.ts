@@ -132,6 +132,36 @@ export interface MembershipPayload {
   active: boolean;
 }
 
+export interface MachinePairPayload {
+  id: string;
+  unitId: string;
+  unitName: string;
+  unitCode: string;
+  name: string;
+  washerMachineId: string;
+  washerMachineName: string;
+  dryerMachineId: string;
+  dryerMachineName: string;
+  active: boolean;
+}
+
+export type ReservationStatus = "PENDING" | "CONFIRMED" | "CANCELED" | "IN_PROGRESS" | "FINISHED";
+
+export interface ReservationPayload {
+  id: string;
+  unitId: string;
+  unitName: string;
+  unitCode: string;
+  machinePairId: string;
+  machinePairName: string;
+  userId: string;
+  userName: string;
+  startAt: string;
+  endAt: string;
+  status: ReservationStatus;
+  canceledAt: string | null;
+}
+
 export const api = {
   health: () => request<HealthResponse>("GET", "/health"),
   healthcheck: () => request<HealthResponse>("GET", "/healthcheck"),
@@ -149,5 +179,15 @@ export const api = {
   },
   memberships: {
     list: () => request<MembershipPayload[]>("GET", "/unit-memberships"),
+  },
+  machinePairs: {
+    list: () => request<MachinePairPayload[]>("GET", "/machine-pairs"),
+  },
+  reservations: {
+    list: () => request<ReservationPayload[]>("GET", "/reservations"),
+    create: (input: { machinePairId: string; startAt: string }) =>
+      request<ReservationPayload>("POST", "/reservations", input),
+    cancel: (id: string) =>
+      request<ReservationPayload>("POST", `/reservations/${id}/cancel`),
   },
 };

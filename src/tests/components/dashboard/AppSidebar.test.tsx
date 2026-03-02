@@ -18,10 +18,7 @@ describe("AppSidebar", () => {
     render(<AppSidebar />, { wrapper: Wrapper });
 
     expect(screen.getByText("Visao Geral")).toBeInTheDocument();
-    expect(screen.getByText("Componentes 1")).toBeInTheDocument();
-    expect(screen.getByText("Componentes 5")).toBeInTheDocument();
-    expect(screen.getByText("Tipografia")).toBeInTheDocument();
+    expect(screen.getByText("Reservas")).toBeInTheDocument();
     expect(screen.getByText("Configuracoes")).toBeInTheDocument();
-    expect(screen.getByText("404")).toBeInTheDocument();
   });
 });

@@ -91,4 +91,37 @@ describe("api service", () => {
       message: "boom",
     });
   });
+
+  it("calls reservation create endpoint", async () => {
+    const payload = {
+      id: "res-1",
+      unitId: "unit-1",
+      unitName: "Unidade 101",
+      unitCode: "101",
+      machinePairId: "pair-1",
+      machinePairName: "Par A",
+      userId: "user-1",
+      userName: "Usuario",
+      startAt: "2026-03-03T10:00:00.000Z",
+      endAt: "2026-03-03T12:00:00.000Z",
+      status: "CONFIRMED",
+      canceledAt: null,
+    };
+
+    getRequestMock().mockResolvedValue({ data: { data: payload, message: null, errors: null } });
+
+    await expect(api.reservations.create({
+      machinePairId: "pair-1",
+      startAt: "2026-03-03T10:00:00.000Z",
+    })).resolves.toEqual(payload);
+
+    expect(getRequestMock()).toHaveBeenCalledWith(expect.objectContaining({
+      method: "POST",
+      url: "/reservations",
+      data: {
+        machinePairId: "pair-1",
+        startAt: "2026-03-03T10:00:00.000Z",
+      },
+    }));
+  });
 });

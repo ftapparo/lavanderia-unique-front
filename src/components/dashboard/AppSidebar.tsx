@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, Component, Shapes, Table2, BellRing, CalendarClock, Type, CircleAlert } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarClock } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
@@ -18,14 +18,8 @@ import {
 
 const menuItems = [
   { title: "Visao Geral", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Componentes 1", url: "/dashboard/componentes-1", icon: Component },
-  { title: "Componentes 2", url: "/dashboard/componentes-2", icon: Shapes },
-  { title: "Componentes 3", url: "/dashboard/componentes-3", icon: Table2 },
-  { title: "Componentes 4", url: "/dashboard/componentes-4", icon: BellRing },
-  { title: "Componentes 5", url: "/dashboard/componentes-5", icon: CalendarClock },
-  { title: "Tipografia", url: "/dashboard/tipografia", icon: Type },
+  { title: "Reservas", url: "/dashboard/reservas", icon: CalendarClock },
   { title: "Configuracoes", url: "/dashboard/configuracoes", icon: Settings },
-  { title: "404", url: "/dashboard/404", icon: CircleAlert },
 ];
 
 export default function AppSidebar() {

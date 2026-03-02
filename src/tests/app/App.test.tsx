@@ -42,6 +42,7 @@ vi.mock("@/pages/dashboard/ComponentsShowcaseThree", () => ({ default: () => <di
 vi.mock("@/pages/dashboard/ComponentsShowcaseFour", () => ({ default: () => <div>components-4</div> }));
 vi.mock("@/pages/dashboard/ComponentsShowcaseFive", () => ({ default: () => <div>components-5</div> }));
 vi.mock("@/pages/dashboard/TypographyShowcase", () => ({ default: () => <div>typography-page</div> }));
+vi.mock("@/pages/dashboard/ReservationsPage", () => ({ default: () => <div>reservations-page</div> }));
 vi.mock("@/pages/404", () => ({ default: () => <div>not-found-page</div> }));
 
 describe("App routing guards", () => {
