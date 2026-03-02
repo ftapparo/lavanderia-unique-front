@@ -3,6 +3,10 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import AppSidebar from "@/components/dashboard/AppSidebar";
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ profile: { role: "ADMIN" } }),
+}));
+
 vi.mock("@/components/theme/ThemeSwitcher", () => ({
   default: ({ compact }: { compact?: boolean }) => <div>{compact ? "theme-compact" : "theme-full"}</div>,
 }));

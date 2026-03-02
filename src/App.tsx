@@ -14,6 +14,10 @@ import ComponentsShowcaseFour from "./pages/dashboard/ComponentsShowcaseFour";
 import ComponentsShowcaseFive from "./pages/dashboard/ComponentsShowcaseFive";
 import TypographyShowcase from "./pages/dashboard/TypographyShowcase";
 import ReservationsPage from "./pages/dashboard/ReservationsPage";
+import AdminUnitsPage from "./pages/dashboard/AdminUnitsPage";
+import AdminMachinesPage from "./pages/dashboard/AdminMachinesPage";
+import AdminMachinePairsPage from "./pages/dashboard/AdminMachinePairsPage";
+import AdminMembershipsPage from "./pages/dashboard/AdminMembershipsPage";
 import NotFoundPage from "./pages/404";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -25,6 +29,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { profile } = useAuth();
+  if (profile?.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -53,6 +63,10 @@ const App = () => (
               <Route path="componentes-5" element={<ComponentsShowcaseFive />} />
               <Route path="tipografia" element={<TypographyShowcase />} />
               <Route path="reservas" element={<ReservationsPage />} />
+              <Route path="admin/unidades" element={<AdminRoute><AdminUnitsPage /></AdminRoute>} />
+              <Route path="admin/maquinas" element={<AdminRoute><AdminMachinesPage /></AdminRoute>} />
+              <Route path="admin/pares" element={<AdminRoute><AdminMachinePairsPage /></AdminRoute>} />
+              <Route path="admin/vinculos" element={<AdminRoute><AdminMembershipsPage /></AdminRoute>} />
               <Route path="configuracoes" element={<SettingsPage />} />
               <Route path="404" element={<NotFoundPage />} />
             </Route>

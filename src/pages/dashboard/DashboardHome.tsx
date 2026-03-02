@@ -79,7 +79,7 @@ export default function DashboardHome() {
             {!loading && units.map((unit) => (
               <div key={unit.id} className="rounded-md border bg-card px-3 py-2">
                 <p className="typo-label text-primary">{unit.code}</p>
-                <p className="typo-caption text-muted-foreground">{unit.name}</p>
+                <p className="typo-caption text-muted-foreground">{unit.active ? "Ativa" : "Oculta"}</p>
               </div>
             ))}
           </CardContent>

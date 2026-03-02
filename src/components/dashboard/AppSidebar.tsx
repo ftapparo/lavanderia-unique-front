@@ -1,7 +1,8 @@
-import { LayoutDashboard, Settings, CalendarClock } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -22,9 +23,18 @@ const menuItems = [
   { title: "Configuracoes", url: "/dashboard/configuracoes", icon: Settings },
 ];
 
+const adminItems = [
+  { title: "Admin Unidades", url: "/dashboard/admin/unidades", icon: Building2 },
+  { title: "Admin Maquinas", url: "/dashboard/admin/maquinas", icon: WashingMachine },
+  { title: "Admin Pares", url: "/dashboard/admin/pares", icon: Link2 },
+  { title: "Admin Vinculos", url: "/dashboard/admin/vinculos", icon: Link2 },
+];
+
 export default function AppSidebar() {
+  const { profile } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const isAdmin = profile?.role === "ADMIN";
 
   return (
     <Sidebar
@@ -52,6 +62,27 @@ export default function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/dashboard"}
+                      className={`flex items-center gap-3 ${isCollapsed
+                        ? "text-primary-foreground/90 hover:bg-primary-dark/40 hover:text-primary-foreground"
+                        : ""
+                        }`}
+                      activeClassName={
+                        isCollapsed
+                          ? "bg-primary-dark/50 text-primary-foreground font-medium"
+                          : "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      }
+                    >
+                      <item.icon className={`h-4 w-4 ${isCollapsed ? "text-primary-foreground" : ""}`} />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {isAdmin && adminItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink
+                      to={item.url}
                       className={`flex items-center gap-3 ${isCollapsed
                         ? "text-primary-foreground/90 hover:bg-primary-dark/40 hover:text-primary-foreground"
                         : ""

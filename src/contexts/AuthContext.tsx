@@ -123,6 +123,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearStorages();
   }, []);
 
+  const tryRefreshSession = useCallback(async (): Promise<boolean> => {
+    const snapshot = loadAuthSnapshot();
+    if (!snapshot.refreshToken) {
+      return false;
+    }
+
+    try {
+      const refreshed = await api.auth.refresh(snapshot.refreshToken);
+      persist(
+        refreshed.accessToken,
+        refreshed.refreshToken,
+        snapshot.user || user || "",
+        snapshot.persistent,
+      );
+      setAccessToken(refreshed.accessToken);
+      setIsAuthenticated(true);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [user]);
+
   useEffect(() => {
     const syncProfile = async () => {
       if (!accessToken) {
@@ -134,12 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(me);
         setUser(me.name);
       } catch {
-        await logout();
+        const refreshed = await tryRefreshSession();
+        if (!refreshed) {
+          await logout();
+        }
       }
     };
 
     void syncProfile();
-  }, [accessToken, logout]);
+  }, [accessToken, logout, tryRefreshSession]);
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, profile, accessToken, login, register, logout }}>

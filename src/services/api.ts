@@ -118,6 +118,30 @@ export interface UnitPayload {
   id: string;
   name: string;
   code: string;
+  floor: number | null;
+  unitNumber: number | null;
+  active: boolean;
+}
+
+export interface UserListItemPayload {
+  id: string;
+  name: string;
+  cpf: string;
+  email: string;
+  phone: string | null;
+  role: "USER" | "ADMIN";
+}
+
+export type MachineType = "WASHER" | "DRYER";
+
+export interface MachinePayload {
+  id: string;
+  number: number;
+  brand: string;
+  model: string;
+  name: string;
+  type: MachineType;
+  active: boolean;
 }
 
 export interface MembershipPayload {
@@ -134,9 +158,6 @@ export interface MembershipPayload {
 
 export interface MachinePairPayload {
   id: string;
-  unitId: string;
-  unitName: string;
-  unitCode: string;
   name: string;
   washerMachineId: string;
   washerMachineName: string;
@@ -176,16 +197,40 @@ export const api = {
   },
   units: {
     list: () => request<UnitPayload[]>("GET", "/units"),
+    create: (input: { floor: number; unitNumber: number; active?: boolean }) =>
+      request<UnitPayload>("POST", "/units", input),
+    update: (id: string, input: { floor?: number; unitNumber?: number; active?: boolean }) =>
+      request<UnitPayload>("PATCH", `/units/${id}`, input),
+    remove: (id: string) =>
+      request<{ id: string; removed: boolean }>("DELETE", `/units/${id}`),
+  },
+  users: {
+    list: () => request<UserListItemPayload[]>("GET", "/users"),
+  },
+  machines: {
+    list: () => request<MachinePayload[]>("GET", "/machines"),
+    create: (input: { number: number; brand: string; model: string; type: MachineType; tuyaDeviceId?: string; active?: boolean }) =>
+      request<MachinePayload>("POST", "/machines", input),
+    update: (id: string, input: { number?: number; brand?: string; model?: string; type?: MachineType; tuyaDeviceId?: string | null; active?: boolean }) =>
+      request<MachinePayload>("PATCH", `/machines/${id}`, input),
+    remove: (id: string) =>
+      request<{ id: string; removed: boolean }>("DELETE", `/machines/${id}`),
   },
   memberships: {
     list: () => request<MembershipPayload[]>("GET", "/unit-memberships"),
+    create: (input: { userId: string; unitId: string; profile: string; startDate: string; endDate?: string | null; active?: boolean }) =>
+      request<MembershipPayload>("POST", "/unit-memberships", input),
+    update: (id: string, input: { profile?: string; startDate?: string; endDate?: string | null; active?: boolean }) =>
+      request<MembershipPayload>("PATCH", `/unit-memberships/${id}`, input),
   },
   machinePairs: {
     list: () => request<MachinePairPayload[]>("GET", "/machine-pairs"),
+    create: (input: { name: string; washerMachineId: string; dryerMachineId: string; active?: boolean }) =>
+      request<MachinePairPayload>("POST", "/machine-pairs", input),
   },
   reservations: {
     list: () => request<ReservationPayload[]>("GET", "/reservations"),
-    create: (input: { machinePairId: string; startAt: string }) =>
+    create: (input: { unitId: string; machinePairId: string; startAt: string }) =>
       request<ReservationPayload>("POST", "/reservations", input),
     cancel: (id: string) =>
       request<ReservationPayload>("POST", `/reservations/${id}/cancel`),
