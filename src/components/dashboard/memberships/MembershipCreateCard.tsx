@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
-import type { UnitPayload, UserListItemPayload } from "@/services/api";
+import type { MembershipProfilePayload, UnitPayload, UserListItemPayload } from "@/services/api";
 
 type MembershipCreateCardProps = {
   userId: string;
@@ -9,6 +9,7 @@ type MembershipCreateCardProps = {
   endDate: string;
   users: UserListItemPayload[];
   units: UnitPayload[];
+  profiles: MembershipProfilePayload[];
   isSubmitting: boolean;
   onUserIdChange: (value: string) => void;
   onUnitIdChange: (value: string) => void;
@@ -26,6 +27,7 @@ export default function MembershipCreateCard({
   endDate,
   users,
   units,
+  profiles,
   isSubmitting,
   onUserIdChange,
   onUnitIdChange,
@@ -58,14 +60,21 @@ export default function MembershipCreateCard({
             <SelectTrigger><SelectValue placeholder="Selecione uma unidade" /></SelectTrigger>
             <SelectContent>
               {units.map((unit) => (
-                <SelectItem key={unit.id} value={unit.id}>{unit.code}</SelectItem>
+                <SelectItem key={unit.id} value={unit.id}>{unit.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label>Perfil</Label>
-          <Input value={profile} onChange={(e) => onProfileChange(e.target.value)} />
+          <Select value={profile} onValueChange={onProfileChange}>
+            <SelectTrigger><SelectValue placeholder="Selecione um perfil" /></SelectTrigger>
+            <SelectContent>
+              {profiles.map((item) => (
+                <SelectItem key={item.code} value={item.code}>{item.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label>Data de inicio</Label>

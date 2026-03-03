@@ -11,16 +11,18 @@ export default function AdminMembershipsPage() {
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState("");
   const [unitId, setUnitId] = useState("");
-  const [profile, setProfile] = useState("MORADOR");
+  const [profile, setProfile] = useState("PROPRIETARIO");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
   const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: api.users.list });
   const unitsQuery = useQuery({ queryKey: ["admin-units"], queryFn: api.units.list });
+  const profilesQuery = useQuery({ queryKey: ["membership-profiles"], queryFn: api.memberships.listProfiles });
   const membershipsQuery = useQuery({ queryKey: ["admin-memberships"], queryFn: api.memberships.list });
 
   const users = usersQuery.data || [];
   const units = (unitsQuery.data || []).filter((unit) => unit.active);
+  const profiles = profilesQuery.data || [];
   const memberships = useMemo(() => membershipsQuery.data || [], [membershipsQuery.data]);
 
   const reload = async () => {
@@ -70,6 +72,7 @@ export default function AdminMembershipsPage() {
         endDate={endDate}
         users={users}
         units={units}
+        profiles={profiles}
         isSubmitting={createMembership.isPending}
         onUserIdChange={setUserId}
         onUnitIdChange={setUnitId}

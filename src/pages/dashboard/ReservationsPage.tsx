@@ -6,9 +6,10 @@ import { Trash2 } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import { Badge, Button, useSidebar } from "@/components/ui/primitives";
-import { api, type MachinePairPayload, type MembershipPayload, type ReservationPayload, type ReservationStatus, type UnitPayload, type UserListItemPayload } from "@/services/api";
+import { api, type MachinePairPayload, type MembershipPayload, type ReservationBusyPayload, type ReservationPayload, type ReservationStatus, type UnitPayload, type UserListItemPayload } from "@/services/api";
 import { notify } from "@/lib/notify";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveUnit } from "@/contexts/ActiveUnitContext";
 import ReservationBookingDialog from "@/components/dashboard/reservations/ReservationBookingDialog";
 import ReservationDetailsDialog from "@/components/dashboard/reservations/ReservationDetailsDialog";
 import ReservationCancelDialog from "@/components/dashboard/reservations/ReservationCancelDialog";
@@ -18,9 +19,10 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   PENDING: "Pendente",
   CONFIRMED: "Confirmada",
   CANCELED: "Cancelada",
-  IN_PROGRESS: "Em andamento",
+  IN_PROGRESS: "Em uso",
   FINISHED: "Finalizada",
 };
+const RESERVING_STATUSES: ReservationStatus[] = ["PENDING", "CONFIRMED", "IN_PROGRESS"];
 
 const statusVariant = (status: ReservationStatus): "default" | "secondary" | "destructive" | "outline" => {
   if (status === "CONFIRMED") return "default";
@@ -54,8 +56,9 @@ const capitalize = (text: string): string => text ? `${text[0].toUpperCase()}${t
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const { activeUnit, activeUnitId } = useActiveUnit();
   const { state: sidebarState } = useSidebar();
-  const isAdmin = profile?.role === "ADMIN";
+  const isAdmin = profile?.role === "ADMIN" || profile?.role === "SUPER";
   const isSidebarExpanded = sidebarState === "expanded";
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -84,6 +87,7 @@ export default function ReservationsPage() {
   const membershipsQuery = useQuery({ queryKey: ["unit-memberships"], queryFn: api.memberships.list });
   const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: api.users.list, enabled: isAdmin });
   const reservationsQuery = useQuery({ queryKey: ["reservations"], queryFn: api.reservations.list });
+  const busyReservationsQuery = useQuery({ queryKey: ["reservations-busy"], queryFn: api.reservations.listBusy });
 
   const createReservation = useMutation({
     mutationFn: (input: { unitId: string; machinePairId: string; startAt: string; userId?: string }) => api.reservations.create(input),
@@ -93,6 +97,7 @@ export default function ReservationsPage() {
       setBookingMachinePairId("");
       setBookingUserId("");
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      await queryClient.invalidateQueries({ queryKey: ["reservations-busy"] });
     },
     onError: (error) => {
       notify.error("Falha ao criar reserva.", {
@@ -106,6 +111,7 @@ export default function ReservationsPage() {
     onSuccess: async () => {
       notify.success("Reserva cancelada com sucesso.");
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      await queryClient.invalidateQueries({ queryKey: ["reservations-busy"] });
     },
     onError: (error) => {
       notify.error("Falha ao cancelar reserva.", {
@@ -121,6 +127,7 @@ export default function ReservationsPage() {
       setActiveSessionId(session.id);
       setActiveSessionOpen(true);
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      await queryClient.invalidateQueries({ queryKey: ["reservations-busy"] });
     },
     onError: (error) => {
       notify.error("Falha ao realizar check-in.", {
@@ -142,10 +149,30 @@ export default function ReservationsPage() {
       notify.success("Sessao finalizada com sucesso.");
       setActiveSessionOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      await queryClient.invalidateQueries({ queryKey: ["reservations-busy"] });
       await queryClient.invalidateQueries({ queryKey: ["session", activeSessionId] });
     },
     onError: (error) => {
       notify.error("Falha ao finalizar sessao.", {
+        description: error instanceof Error ? error.message : "Erro desconhecido.",
+      });
+    },
+  });
+
+  const checkoutReservation = useMutation({
+    mutationFn: async (reservationId: string) => {
+      const session = await api.sessions.getByReservationId(reservationId);
+      return api.sessions.finish(session.id);
+    },
+    onSuccess: async () => {
+      notify.success("Checkout realizado. Maquinas desligadas.");
+      setReservationDetailsOpen(false);
+      setSelectedReservation(null);
+      await queryClient.invalidateQueries({ queryKey: ["reservations"] });
+      await queryClient.invalidateQueries({ queryKey: ["reservations-busy"] });
+    },
+    onError: (error) => {
+      notify.error("Falha ao realizar checkout.", {
         description: error instanceof Error ? error.message : "Erro desconhecido.",
       });
     },
@@ -163,18 +190,18 @@ export default function ReservationsPage() {
     () => allReservations.filter((reservation) => reservation.status !== "CANCELED"),
     [allReservations],
   );
-
-  const membershipsByPriority = useMemo(() => {
-    return [...memberships]
-      .filter((membership: MembershipPayload) => membership.active)
-      .sort((a: MembershipPayload, b: MembershipPayload) => (a.startDate < b.startDate ? 1 : -1));
-  }, [memberships]);
-
-  const autoUnit = useMemo(() => {
-    const firstMembership = membershipsByPriority[0];
-    if (!firstMembership) return null;
-    return units.find((unit: UnitPayload) => unit.id === firstMembership.unitId) || null;
-  }, [membershipsByPriority, units]);
+  const busyReservations = useMemo(
+    () => (busyReservationsQuery.data || []).filter((reservation: ReservationBusyPayload) => RESERVING_STATUSES.includes(reservation.status)),
+    [busyReservationsQuery.data],
+  );
+  const visibleDailyReservations = useMemo(() => {
+    if (isAdmin) return dailyReservations;
+    const profileUserId = profile?.id;
+    if (!profileUserId || !activeUnitId) return [];
+    return dailyReservations.filter((reservation) =>
+      reservation.userId === profileUserId
+      && reservation.unitId === activeUnitId);
+  }, [dailyReservations, isAdmin, profile?.id, activeUnitId]);
 
   const eligibleUsersForBooking = useMemo(() => {
     if (!isAdmin || !bookingUnitId || !bookingStartAt) {
@@ -222,7 +249,8 @@ export default function ReservationsPage() {
     return (minutes / (60 * SLOT_STEP_HOURS)) * HOUR_ROW_HEIGHT;
   };
 
-  const canCancel = (status: ReservationStatus): boolean => status !== "CANCELED" && status !== "FINISHED";
+  const canCancel = (status: ReservationStatus): boolean => status === "PENDING" || status === "CONFIRMED";
+  const canCheckout = (reservation: ReservationPayload | null): boolean => reservation?.status === "IN_PROGRESS";
 
   const openReservationDetails = (reservation: ReservationPayload) => {
     setSelectedReservation(reservation);
@@ -245,7 +273,7 @@ export default function ReservationsPage() {
       setBookingUnitId("");
       setBookingUserId("");
     } else {
-      setBookingUnitId(autoUnit?.id || "");
+      setBookingUnitId(activeUnitId || "");
     }
 
     setBookingOpen(true);
@@ -261,7 +289,7 @@ export default function ReservationsPage() {
       return;
     }
 
-    const targetUnitId = isAdmin ? bookingUnitId : (autoUnit?.id || "");
+    const targetUnitId = isAdmin ? bookingUnitId : (activeUnitId || "");
     if (!targetUnitId) {
       notify.warning("Unidade nao definida para a reserva.");
       return;
@@ -321,6 +349,33 @@ export default function ReservationsPage() {
     setSelectedDate(isMobileCalendar ? addDays(selectedDate, 1) : addWeeks(selectedDate, 1));
   };
 
+  const reservedMachinePairIdsAtBookingSlot = useMemo(() => {
+    if (!bookingStartAt) return new Set<string>();
+    const slotStartDate = new Date(bookingStartAt);
+    const slotStart = slotStartDate.getTime();
+    const slotEnd = new Date(slotStartDate.getTime() + (SLOT_STEP_HOURS * 60 * 60 * 1000)).getTime();
+    return new Set(
+      busyReservations
+        .filter((reservation) => {
+          const reservationStart = new Date(reservation.startAt).getTime();
+          const reservationEnd = new Date(reservation.endAt).getTime();
+          return reservationStart < slotEnd && reservationEnd > slotStart;
+        })
+        .map((reservation) => reservation.machinePairId),
+    );
+  }, [bookingStartAt, busyReservations]);
+
+  const availableMachinePairsAtBookingSlot = useMemo(
+    () => machinePairs.filter((pair) => !reservedMachinePairIdsAtBookingSlot.has(pair.id)),
+    [machinePairs, reservedMachinePairIdsAtBookingSlot],
+  );
+
+  useEffect(() => {
+    if (!bookingMachinePairId) return;
+    const exists = availableMachinePairsAtBookingSlot.some((pair) => pair.id === bookingMachinePairId);
+    if (!exists) setBookingMachinePairId("");
+  }, [availableMachinePairsAtBookingSlot, bookingMachinePairId]);
+
   return (
     <PageContainer className="max-w-none">
       <PageHeader
@@ -376,7 +431,7 @@ export default function ReservationsPage() {
             ) : null}
             {!isAdmin ? (
               <Badge variant="secondary">
-                Unidade: {autoUnit?.name || "Nao encontrada"}
+                Unidade: {activeUnit?.name || "Nao encontrada"}
               </Badge>
             ) : null}
           </div>
@@ -415,7 +470,7 @@ export default function ReservationsPage() {
               </div>
 
                 {weekDays.map((day) => {
-                  const dayReservations = dailyReservations.filter((reservation) => isSameDay(reservationDate(reservation), day));
+                  const dayReservations = visibleDailyReservations.filter((reservation) => isSameDay(reservationDate(reservation), day));
                   return (
                     <div
                       key={day.toISOString()}
@@ -448,13 +503,30 @@ export default function ReservationsPage() {
                         const start = new Date(reservation.startAt);
                         const end = new Date(reservation.endAt);
                         const top = clamp(toTop(start), 0, VIEW_HEIGHT);
-                        const height = clamp(toTop(end) - toTop(start), 28, VIEW_HEIGHT - top);
+                        const durationMs = Math.max(end.getTime() - start.getTime(), SLOT_STEP_HOURS * 60 * 60 * 1000);
+                        const durationSlots = durationMs / (SLOT_STEP_HOURS * 60 * 60 * 1000);
+                        const height = clamp(durationSlots * HOUR_ROW_HEIGHT, HOUR_ROW_HEIGHT, VIEW_HEIGHT - top);
+                        const overlapping = dayReservations
+                          .filter((item) => new Date(item.startAt).getTime() === start.getTime())
+                          .sort((a, b) => a.machinePairName.localeCompare(b.machinePairName));
+                        const laneCount = Math.max(overlapping.length, 1);
+                        const laneIndex = Math.max(
+                          overlapping.findIndex((item) => item.id === reservation.id),
+                          0,
+                        );
+                        const widthPercent = 100 / laneCount;
+                        const leftPercent = laneIndex * widthPercent;
 
                         return (
                           <div
                             key={reservation.id}
-                            className="absolute left-1 right-1 overflow-hidden rounded border border-primary/40 bg-primary/10 px-2 py-1 text-left shadow-sm"
-                            style={{ top: `${top}px`, height: `${height}px` }}
+                            className="absolute overflow-hidden rounded border border-primary/40 bg-primary/10 px-2 py-1 text-left shadow-sm"
+                            style={{
+                              top: `${top}px`,
+                              height: `${height}px`,
+                              left: `calc(${leftPercent}% + 2px)`,
+                              width: `calc(${widthPercent}% - 4px)`,
+                            }}
                             onClick={(event) => {
                               event.stopPropagation();
                               openReservationDetails(reservation);
@@ -531,6 +603,16 @@ export default function ReservationsPage() {
                             <Button size="sm" variant="ghost" onClick={() => openReservationDetails(reservation)}>
                               Detalhes
                             </Button>
+                            {reservation.status === "IN_PROGRESS" ? (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => void checkoutReservation.mutateAsync(reservation.id)}
+                                disabled={checkoutReservation.isPending}
+                              >
+                                Checkout
+                              </Button>
+                            ) : null}
                             {canCancel(reservation.status) ? (
                               <Button
                                 size="sm"
@@ -561,10 +643,10 @@ export default function ReservationsPage() {
         bookingUserId={bookingUserId}
         bookingMachinePairId={bookingMachinePairId}
         isAdmin={isAdmin}
-        autoUnit={autoUnit}
+        autoUnit={activeUnit}
         units={units}
         eligibleUsers={eligibleUsersForBooking}
-        machinePairs={machinePairs}
+        machinePairs={availableMachinePairsAtBookingSlot}
         creating={createReservation.isPending}
         formatDateTime={formatDateTime}
         onUnitChange={(value) => {
@@ -583,10 +665,15 @@ export default function ReservationsPage() {
         selectedPair={selectedPair}
         canCheckIn={canCheckIn}
         canCancel={canCancel}
+        canCheckout={canCheckout}
         checkinPending={checkInReservation.isPending}
+        checkoutPending={checkoutReservation.isPending}
         formatDateTime={formatDateTime}
         onCheckIn={(reservationId) => {
           void checkInReservation.mutateAsync(reservationId);
+        }}
+        onCheckout={(reservationId) => {
+          void checkoutReservation.mutateAsync(reservationId);
         }}
         onOpenCancelDialog={openCancelDialog}
       />

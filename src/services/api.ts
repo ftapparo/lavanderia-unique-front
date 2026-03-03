@@ -105,7 +105,7 @@ export interface ApiUser {
   cpf: string;
   email: string;
   phone: string | null;
-  role: "USER" | "ADMIN";
+  role: "USER" | "ADMIN" | "SUPER";
 }
 
 export interface AuthPayload {
@@ -121,6 +121,7 @@ export interface UnitPayload {
   floor: number | null;
   unitNumber: number | null;
   active: boolean;
+  allowGuestReservations?: boolean;
 }
 
 export interface UserListItemPayload {
@@ -129,7 +130,7 @@ export interface UserListItemPayload {
   cpf: string;
   email: string;
   phone: string | null;
-  role: "USER" | "ADMIN";
+  role: "USER" | "ADMIN" | "SUPER";
 }
 
 export type MachineType = "WASHER" | "DRYER";
@@ -157,6 +158,12 @@ export interface MembershipPayload {
   active: boolean;
 }
 
+export interface MembershipProfilePayload {
+  code: "PROPRIETARIO" | "LOCATARIO" | "HOSPEDE" | "ADMINISTRADOR" | "SUPER";
+  name: string;
+  description: string;
+}
+
 export interface MachinePairPayload {
   id: string;
   name: string;
@@ -182,6 +189,14 @@ export interface ReservationPayload {
   endAt: string;
   status: ReservationStatus;
   canceledAt: string | null;
+}
+
+export interface ReservationBusyPayload {
+  id: string;
+  machinePairId: string;
+  startAt: string;
+  endAt: string;
+  status: ReservationStatus;
 }
 
 export type LaundrySessionStatus = "ACTIVE" | "FINISHED" | "FORCED_FINISHED";
@@ -221,6 +236,70 @@ export interface LaundrySessionDetailsPayload extends LaundrySessionPayload {
   devices: LaundrySessionDevicePayload[];
 }
 
+export interface IncidentPayload {
+  id: string;
+  type: "NO_SHOW" | "OVERTIME" | "FORCED_SHUTDOWN" | "TUYA_ERROR";
+  reservationId: string | null;
+  laundrySessionId: string | null;
+  unitId: string | null;
+  unitName: string | null;
+  userId: string | null;
+  userName: string | null;
+  description: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface SystemSettingsPayload {
+  checkinWindowBeforeMinutes: number;
+  checkinWindowAfterMinutes: number;
+  overtimeThresholdWatts: number;
+  consumptionPollSeconds: number;
+  billingMode: "PER_USE" | "PER_KWH";
+  pricePerUse: number;
+  pricePerKwh: number;
+  updatedByUserId: string | null;
+  updatedAt: string;
+}
+
+export interface InvoicePayload {
+  id: string;
+  competence: string;
+  userId: string;
+  userName: string;
+  unitId: string | null;
+  unitName: string | null;
+  billingMode: "PER_USE" | "PER_KWH";
+  totalAmount: number;
+  generatedAt: string;
+  createdAt: string;
+}
+
+export interface InvoiceItemPayload {
+  id: string;
+  invoiceId: string;
+  reservationId: string | null;
+  laundrySessionId: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface InvoiceDetailsPayload extends InvoicePayload {
+  items: InvoiceItemPayload[];
+}
+
+export interface AdminDashboardPayload {
+  reservationsTotal: number;
+  sessionsTotal: number;
+  incidentsTotal: number;
+  invoicesTotal: number;
+  generatedAt: string;
+}
+
 export const api = {
   health: () => request<HealthResponse>("GET", "/health"),
   healthcheck: () => request<HealthResponse>("GET", "/healthcheck"),
@@ -255,6 +334,7 @@ export const api = {
       request<{ id: string; removed: boolean }>("DELETE", `/machines/${id}`),
   },
   memberships: {
+    listProfiles: () => request<MembershipProfilePayload[]>("GET", "/membership-profiles"),
     list: () => request<MembershipPayload[]>("GET", "/unit-memberships"),
     create: (input: { userId: string; unitId: string; profile: string; startDate: string; endDate?: string | null; active?: boolean }) =>
       request<MembershipPayload>("POST", "/unit-memberships", input),
@@ -268,6 +348,7 @@ export const api = {
   },
   reservations: {
     list: () => request<ReservationPayload[]>("GET", "/reservations"),
+    listBusy: () => request<ReservationBusyPayload[]>("GET", "/reservations/busy"),
     create: (input: { unitId: string; machinePairId: string; startAt: string; userId?: string }) =>
       request<ReservationPayload>("POST", "/reservations", input),
     cancel: (id: string) =>
@@ -276,9 +357,41 @@ export const api = {
       request<LaundrySessionPayload>("POST", `/reservations/${id}/check-in`),
   },
   sessions: {
+    getByReservationId: (reservationId: string) =>
+      request<LaundrySessionPayload>("GET", `/sessions/by-reservation/${reservationId}`),
     getById: (id: string) =>
       request<LaundrySessionDetailsPayload>("GET", `/sessions/${id}`),
     finish: (id: string) =>
       request<LaundrySessionPayload>("POST", `/sessions/${id}/finish`),
+  },
+  incidents: {
+    list: () => request<IncidentPayload[]>("GET", "/incidents"),
+  },
+  settings: {
+    get: () => request<SystemSettingsPayload>("GET", "/settings"),
+    update: (input: Partial<SystemSettingsPayload>) => request<SystemSettingsPayload>("PATCH", "/settings", input),
+  },
+  billing: {
+    run: (input: { competence?: string }) => request<{ competence: string; billingMode: "PER_USE" | "PER_KWH"; invoicesCreated: number; itemsCreated: number; totalAmount: number }>("POST", "/billing/run", input),
+    exportDownload: async (competence: string, format: "csv" | "xlsx" = "csv"): Promise<void> => {
+      const response = await http.get(`/billing/exports/${competence}?format=${format}`, {
+        responseType: "blob",
+      });
+      const blobUrl = window.URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `billing-${competence}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    },
+  },
+  invoices: {
+    list: () => request<InvoicePayload[]>("GET", "/invoices"),
+    getById: (id: string) => request<InvoiceDetailsPayload>("GET", `/invoices/${id}`),
+  },
+  admin: {
+    dashboard: () => request<AdminDashboardPayload>("GET", "/admin/dashboard"),
   },
 };

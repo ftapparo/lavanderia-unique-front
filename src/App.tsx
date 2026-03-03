@@ -2,6 +2,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/primitives";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ActiveUnitProvider } from "@/contexts/ActiveUnitContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import Login from "./pages/Login";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
@@ -18,6 +19,10 @@ import AdminUnitsPage from "./pages/dashboard/AdminUnitsPage";
 import AdminMachinesPage from "./pages/dashboard/AdminMachinesPage";
 import AdminMachinePairsPage from "./pages/dashboard/AdminMachinePairsPage";
 import AdminMembershipsPage from "./pages/dashboard/AdminMembershipsPage";
+import AdminOpsDashboardPage from "./pages/dashboard/AdminOpsDashboardPage";
+import AdminIncidentsPage from "./pages/dashboard/AdminIncidentsPage";
+import AdminBillingPage from "./pages/dashboard/AdminBillingPage";
+import AdminSystemSettingsPage from "./pages/dashboard/AdminSystemSettingsPage";
 import NotFoundPage from "./pages/404";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -34,7 +39,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { profile } = useAuth();
-  if (profile?.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
+  if (profile?.role !== "ADMIN" && profile?.role !== "SUPER") return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -43,36 +48,42 @@ const App = () => (
     <TooltipProvider>
       <Sonner />
       <AuthProvider>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Routes>
-            <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<DashboardHome />} />
-              <Route path="componentes" element={<Navigate to="/dashboard/componentes-1" replace />} />
-              <Route path="componentes-1" element={<ComponentsShowcase />} />
-              <Route path="componentes-2" element={<ComponentsShowcaseTwo />} />
-              <Route path="componentes-3" element={<ComponentsShowcaseThree />} />
-              <Route path="componentes-4" element={<ComponentsShowcaseFour />} />
-              <Route path="componentes-5" element={<ComponentsShowcaseFive />} />
-              <Route path="tipografia" element={<TypographyShowcase />} />
-              <Route path="reservas" element={<ReservationsPage />} />
-              <Route path="admin/unidades" element={<AdminRoute><AdminUnitsPage /></AdminRoute>} />
-              <Route path="admin/maquinas" element={<AdminRoute><AdminMachinesPage /></AdminRoute>} />
-              <Route path="admin/pares" element={<AdminRoute><AdminMachinePairsPage /></AdminRoute>} />
-              <Route path="admin/vinculos" element={<AdminRoute><AdminMembershipsPage /></AdminRoute>} />
-              <Route path="configuracoes" element={<SettingsPage />} />
-              <Route path="404" element={<NotFoundPage />} />
-            </Route>
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </BrowserRouter>
+        <ActiveUnitProvider>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<DashboardHome />} />
+                <Route path="componentes" element={<Navigate to="/dashboard/componentes-1" replace />} />
+                <Route path="componentes-1" element={<ComponentsShowcase />} />
+                <Route path="componentes-2" element={<ComponentsShowcaseTwo />} />
+                <Route path="componentes-3" element={<ComponentsShowcaseThree />} />
+                <Route path="componentes-4" element={<ComponentsShowcaseFour />} />
+                <Route path="componentes-5" element={<ComponentsShowcaseFive />} />
+                <Route path="tipografia" element={<TypographyShowcase />} />
+                <Route path="reservas" element={<ReservationsPage />} />
+                <Route path="admin/unidades" element={<AdminRoute><AdminUnitsPage /></AdminRoute>} />
+                <Route path="admin/maquinas" element={<AdminRoute><AdminMachinesPage /></AdminRoute>} />
+                <Route path="admin/pares" element={<AdminRoute><AdminMachinePairsPage /></AdminRoute>} />
+                <Route path="admin/vinculos" element={<AdminRoute><AdminMembershipsPage /></AdminRoute>} />
+                <Route path="admin/dashboard" element={<AdminRoute><AdminOpsDashboardPage /></AdminRoute>} />
+                <Route path="admin/ocorrencias" element={<AdminRoute><AdminIncidentsPage /></AdminRoute>} />
+                <Route path="admin/faturamento" element={<AdminRoute><AdminBillingPage /></AdminRoute>} />
+                <Route path="admin/sistema" element={<AdminRoute><AdminSystemSettingsPage /></AdminRoute>} />
+                <Route path="configuracoes" element={<SettingsPage />} />
+                <Route path="404" element={<NotFoundPage />} />
+              </Route>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </BrowserRouter>
+        </ActiveUnitProvider>
       </AuthProvider>
     </TooltipProvider>
   </ThemeProvider>

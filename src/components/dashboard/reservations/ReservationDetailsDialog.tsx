@@ -7,7 +7,7 @@ const STATUS_LABELS: Record<ReservationStatus, string> = {
   PENDING: "Pendente",
   CONFIRMED: "Confirmada",
   CANCELED: "Cancelada",
-  IN_PROGRESS: "Em andamento",
+  IN_PROGRESS: "Em uso",
   FINISHED: "Finalizada",
 };
 
@@ -25,9 +25,12 @@ type ReservationDetailsDialogProps = {
   selectedPair: MachinePairPayload | null;
   canCheckIn: (reservation: ReservationPayload | null) => boolean;
   canCancel: (status: ReservationStatus) => boolean;
+  canCheckout: (reservation: ReservationPayload | null) => boolean;
   checkinPending: boolean;
+  checkoutPending: boolean;
   formatDateTime: (value: string) => string;
   onCheckIn: (reservationId: string) => void;
+  onCheckout: (reservationId: string) => void;
   onOpenCancelDialog: (reservation: ReservationPayload) => void;
 };
 
@@ -38,9 +41,12 @@ export default function ReservationDetailsDialog({
   selectedPair,
   canCheckIn,
   canCancel,
+  canCheckout,
   checkinPending,
+  checkoutPending,
   formatDateTime,
   onCheckIn,
+  onCheckout,
   onOpenCancelDialog,
 }: ReservationDetailsDialogProps) {
   return (
@@ -77,6 +83,15 @@ export default function ReservationDetailsDialog({
               disabled={checkinPending}
             >
               {checkinPending ? "Realizando check-in..." : "Fazer check-in"}
+            </Button>
+          ) : null}
+          {reservation && canCheckout(reservation) ? (
+            <Button
+              variant="secondary"
+              onClick={() => onCheckout(reservation.id)}
+              disabled={checkoutPending}
+            >
+              {checkoutPending ? "Realizando checkout..." : "Fazer checkout"}
             </Button>
           ) : null}
           {reservation && canCancel(reservation.status) ? (

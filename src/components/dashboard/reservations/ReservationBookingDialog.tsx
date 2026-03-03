@@ -69,7 +69,7 @@ export default function ReservationBookingDialog({
                   <SelectContent>
                     {units.map((unit) => (
                       <SelectItem key={unit.id} value={unit.id}>
-                        {unit.code}
+                        {unit.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -96,25 +96,31 @@ export default function ReservationBookingDialog({
             <div className="space-y-1">
               <Label>Unidade</Label>
               <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption">
-                {autoUnit ? autoUnit.code : "Sem unidade vinculada"}
+                {autoUnit ? autoUnit.name : "Sem unidade vinculada"}
               </div>
             </div>
           )}
 
           <div className="space-y-1">
             <Label>Par de maquinas</Label>
-            <Select value={bookingMachinePairId} onValueChange={onPairChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um par" />
-              </SelectTrigger>
-              <SelectContent>
-                {machinePairs.map((pair) => (
-                  <SelectItem key={pair.id} value={pair.id}>
-                    {pair.name} ({pair.washerMachineName} + {pair.dryerMachineName})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {machinePairs.length === 0 ? (
+              <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption text-muted-foreground">
+                Indisponivel
+              </div>
+            ) : (
+              <Select value={bookingMachinePairId} onValueChange={onPairChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um par" />
+                </SelectTrigger>
+                <SelectContent>
+                  {machinePairs.map((pair) => (
+                    <SelectItem key={pair.id} value={pair.id}>
+                      {pair.name} ({pair.washerMachineName} + {pair.dryerMachineName})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
@@ -122,7 +128,7 @@ export default function ReservationBookingDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={onSubmit} disabled={creating}>
+          <Button onClick={onSubmit} disabled={creating || machinePairs.length === 0}>
             {creating ? "Reservando..." : "Reservar"}
           </Button>
         </DialogFooter>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2 } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2, Gauge, AlertTriangle, FileSpreadsheet, SlidersHorizontal } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
@@ -24,17 +24,21 @@ const menuItems = [
 ];
 
 const adminItems = [
+  { title: "Admin Dashboard", url: "/dashboard/admin/dashboard", icon: Gauge },
   { title: "Admin Unidades", url: "/dashboard/admin/unidades", icon: Building2 },
   { title: "Admin Maquinas", url: "/dashboard/admin/maquinas", icon: WashingMachine },
   { title: "Admin Pares", url: "/dashboard/admin/pares", icon: Link2 },
   { title: "Admin Vinculos", url: "/dashboard/admin/vinculos", icon: Link2 },
+  { title: "Admin Ocorrencias", url: "/dashboard/admin/ocorrencias", icon: AlertTriangle },
+  { title: "Admin Faturamento", url: "/dashboard/admin/faturamento", icon: FileSpreadsheet },
+  { title: "Admin Sistema", url: "/dashboard/admin/sistema", icon: SlidersHorizontal },
 ];
 
 export default function AppSidebar() {
   const { profile } = useAuth();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const isAdmin = profile?.role === "ADMIN";
+  const isAdmin = profile?.role === "ADMIN" || profile?.role === "SUPER";
 
   return (
     <Sidebar
