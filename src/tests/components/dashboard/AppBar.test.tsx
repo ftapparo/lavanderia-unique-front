@@ -6,7 +6,20 @@ const logoutMock = vi.fn();
 const navigateMock = vi.fn();
 
 vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ user: "ADMIN", logout: logoutMock }),
+  useAuth: () => ({
+    user: "ADMIN",
+    logout: logoutMock,
+    profile: { role: "ADMIN" },
+  }),
+}));
+
+vi.mock("@/contexts/ActiveUnitContext", () => ({
+  useActiveUnit: () => ({
+    activeUnit: null,
+    activeUnitId: null,
+    availableUnits: [],
+    setActiveUnitId: vi.fn(),
+  }),
 }));
 
 vi.mock("react-router-dom", async () => {

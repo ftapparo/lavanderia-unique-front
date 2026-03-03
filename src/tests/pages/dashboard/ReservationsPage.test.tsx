@@ -51,6 +51,9 @@ vi.mock("@/services/api", () => ({
         },
       ]),
     },
+    users: {
+      list: vi.fn(async () => []),
+    },
     reservations: {
       list: vi.fn(async () => [
         {
@@ -68,8 +71,15 @@ vi.mock("@/services/api", () => ({
           canceledAt: null,
         },
       ]),
+      listBusy: vi.fn(async () => []),
       create: vi.fn(async () => ({})),
       cancel: vi.fn(async () => ({})),
+      checkIn: vi.fn(async () => ({})),
+    },
+    sessions: {
+      getById: vi.fn(async () => ({})),
+      getByReservationId: vi.fn(async () => ({})),
+      finish: vi.fn(async () => ({})),
     },
   },
 }));
@@ -82,6 +92,15 @@ vi.mock("@/contexts/AuthContext", () => ({
       name: "Usuario 1",
       email: "user1@example.com",
     },
+  }),
+}));
+
+vi.mock("@/contexts/ActiveUnitContext", () => ({
+  useActiveUnit: () => ({
+    activeUnit: { id: "unit-1", name: "11", code: "1", floor: 1, unitNumber: 1, active: true },
+    activeUnitId: "unit-1",
+    availableUnits: [{ id: "unit-1", name: "11", code: "1", floor: 1, unitNumber: 1, active: true }],
+    setActiveUnitId: vi.fn(),
   }),
 }));
 

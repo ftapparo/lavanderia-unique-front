@@ -10,6 +10,16 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => authState,
 }));
 
+vi.mock("@/contexts/ActiveUnitContext", () => ({
+  ActiveUnitProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  useActiveUnit: () => ({
+    activeUnit: null,
+    activeUnitId: null,
+    availableUnits: [],
+    setActiveUnitId: vi.fn(),
+  }),
+}));
+
 vi.mock("@/components/theme/ThemeProvider", () => ({
   ThemeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));

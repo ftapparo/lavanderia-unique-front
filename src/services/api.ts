@@ -297,7 +297,41 @@ export interface AdminDashboardPayload {
   sessionsTotal: number;
   incidentsTotal: number;
   invoicesTotal: number;
+  activeSessionsTotal: number;
+  tuyaErrorsLast24h: number;
+  jobs: {
+    enabled: boolean;
+    started: boolean;
+    retry: { attempts: number; baseDelayMs: number };
+    jobs: Record<string, {
+      lastStartedAt: string | null;
+      lastFinishedAt: string | null;
+      lastStatus: "SUCCESS" | "ERROR" | "RUNNING" | "IDLE";
+      lastError: string | null;
+      runCount: number;
+      successCount: number;
+      errorCount: number;
+    }>;
+  };
   generatedAt: string;
+}
+
+export interface AdminOpsHealthPayload {
+  db: "ok" | "error";
+  tuya: "ok" | "error";
+  tuyaDetails: unknown;
+  jobs: AdminDashboardPayload["jobs"];
+  checkedAt: string;
+}
+
+export interface AdminActiveSessionPayload {
+  id: string;
+  reservationId: string;
+  userName: string;
+  unitName: string;
+  machinePairName: string;
+  startedAt: string;
+  overtimeStartedAt: string | null;
 }
 
 export const api = {
@@ -393,5 +427,8 @@ export const api = {
   },
   admin: {
     dashboard: () => request<AdminDashboardPayload>("GET", "/admin/dashboard"),
+    opsHealth: () => request<AdminOpsHealthPayload>("GET", "/admin/ops/health"),
+    activeSessions: () => request<AdminActiveSessionPayload[]>("GET", "/admin/ops/active-sessions"),
+    reconcileSession: (id: string) => request<LaundrySessionPayload>("POST", `/admin/ops/reconcile-session/${id}`),
   },
 };

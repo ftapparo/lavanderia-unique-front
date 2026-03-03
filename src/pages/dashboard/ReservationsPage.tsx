@@ -52,6 +52,15 @@ const clamp = (value: number, min: number, max: number): number => Math.min(Math
 const formatDateTime = (value: string): string => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 const reservationSortDesc = (a: ReservationPayload, b: ReservationPayload): number => new Date(b.startAt).getTime() - new Date(a.startAt).getTime();
 const capitalize = (text: string): string => text ? `${text[0].toUpperCase()}${text.slice(1)}` : text;
+const describeApiError = (error: unknown): string => {
+  if (!(error instanceof Error)) return "Erro desconhecido.";
+  const payload = (error as Error & { payload?: any }).payload;
+  const code = payload?.errors?.code || payload?.errors?.details?.code || payload?.errors?.details?.cause?.code;
+  if (code === "TUYA_TIMEOUT") return "Timeout na comunicacao com o servico Tuya.";
+  if (code === "TUYA_UNAVAILABLE") return "Servico Tuya indisponivel no momento.";
+  if (typeof error.message === "string" && error.message.trim()) return error.message;
+  return "Erro desconhecido.";
+};
 
 export default function ReservationsPage() {
   const queryClient = useQueryClient();
@@ -131,7 +140,7 @@ export default function ReservationsPage() {
     },
     onError: (error) => {
       notify.error("Falha ao realizar check-in.", {
-        description: error instanceof Error ? error.message : "Erro desconhecido.",
+        description: describeApiError(error),
       });
     },
   });
@@ -154,7 +163,7 @@ export default function ReservationsPage() {
     },
     onError: (error) => {
       notify.error("Falha ao finalizar sessao.", {
-        description: error instanceof Error ? error.message : "Erro desconhecido.",
+        description: describeApiError(error),
       });
     },
   });
@@ -173,7 +182,7 @@ export default function ReservationsPage() {
     },
     onError: (error) => {
       notify.error("Falha ao realizar checkout.", {
-        description: error instanceof Error ? error.message : "Erro desconhecido.",
+        description: describeApiError(error),
       });
     },
   });
@@ -692,7 +701,7 @@ export default function ReservationsPage() {
         onOpenChange={setActiveSessionOpen}
         isLoading={activeSessionQuery.isLoading}
         errorMessage={activeSessionQuery.isError
-          ? (activeSessionQuery.error instanceof Error ? activeSessionQuery.error.message : "Falha ao carregar sessao.")
+          ? describeApiError(activeSessionQuery.error)
           : null}
         session={activeSessionQuery.data || null}
         finishPending={finishSession.isPending}
