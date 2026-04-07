@@ -1,8 +1,8 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveUnit } from "@/contexts/ActiveUnitContext";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut } from "lucide-react";
-import { Avatar, AvatarFallback, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/primitives";
+import { ChevronDown, LogOut, UserCircle2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/primitives";
 import type { ReactNode } from "react";
 
 interface Props {
@@ -15,6 +15,9 @@ export default function AppBar({ children }: Props) {
   const navigate = useNavigate();
   const isAdmin = profile?.role === "ADMIN" || profile?.role === "SUPER";
   const initials = (user || "U").slice(0, 2).toUpperCase();
+  const avatarSrc = profile?.profilePhotoBase64 && profile?.profilePhotoMime
+    ? `data:${profile.profilePhotoMime};base64,${profile.profilePhotoBase64}`
+    : undefined;
 
   const handleLogout = async () => {
     await logout();
@@ -33,6 +36,7 @@ export default function AppBar({ children }: Props) {
               aria-label="Abrir menu do perfil"
             >
               <Avatar className="h-7 w-7">
+                <AvatarImage src={avatarSrc} alt={user || "Usuario"} />
                 <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
               </Avatar>
               <span className="hidden sm:inline typo-label text-muted-foreground uppercase">{user}</span>
@@ -41,6 +45,11 @@ export default function AppBar({ children }: Props) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[260px]">
             <DropdownMenuLabel>Perfil</DropdownMenuLabel>
+            <DropdownMenuItem onSelect={() => navigate("/dashboard/perfil")}>
+              <UserCircle2 className="mr-2 h-4 w-4" />
+              Meu perfil
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {!isAdmin ? (
               <>
                 <DropdownMenuItem className="cursor-default focus:bg-transparent">

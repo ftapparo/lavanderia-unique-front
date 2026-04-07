@@ -14,6 +14,7 @@ export const APP_LOGO_LIGHT = readEnv(import.meta.env.VITE_LOGO_LIGHT, "/logo-te
 export const APP_LOGO_DARK = readEnv(import.meta.env.VITE_LOGO_DARK, "/logo-template-white.png");
 export const APP_LOGIN_BACKGROUND = readEnv(import.meta.env.VITE_LOGIN_BG, "/background-template.png");
 export const APP_API_BASE_URL = readEnv(import.meta.env.VITE_API_BASE_URL, "http://localhost:3000/v1/api");
+export const APP_MOBILE_URL = readEnv(import.meta.env.VITE_APP_MOBILE_URL, "http://localhost:8081");
 
 export const AUTH_STORAGE_KEYS = {
   auth: `${APP_AUTH_STORAGE_PREFIX}_auth`,

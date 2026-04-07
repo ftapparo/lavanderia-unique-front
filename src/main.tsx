@@ -5,6 +5,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { APP_DESCRIPTION, APP_NAME } from "@/config/app-config";
 import { queryClient } from "@/lib/query-client";
+import { redirectToMobileAppIfNeeded } from "@/utils/cross-app-redirect";
 
 document.title = APP_NAME;
 const descriptionMeta = document.querySelector("meta[name='description']");
@@ -12,10 +13,12 @@ if (descriptionMeta) {
   descriptionMeta.setAttribute("content", APP_DESCRIPTION);
 }
 
-registerSW({ immediate: true });
+if (!redirectToMobileAppIfNeeded()) {
+  registerSW({ immediate: true });
 
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>,
-);
+  createRoot(document.getElementById("root")!).render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>,
+  );
+}

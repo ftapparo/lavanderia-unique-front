@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/primitives";
@@ -108,11 +109,13 @@ export default function AdminMachinesPage() {
       <PageHeader
         title="Administracao de Maquinas"
         description="Cadastro de maquinas sem vinculo de unidade."
+        actions={(
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Maquina
+          </Button>
+        )}
       />
-
-      <div className="flex justify-end">
-        <Button onClick={() => setCreateOpen(true)}>Adicionar maquina</Button>
-      </div>
 
       <div className="space-y-4">
         <div>

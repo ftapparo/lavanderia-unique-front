@@ -38,6 +38,69 @@ const requestContextInterceptor = (config: any) => {
 
 http.interceptors.request.use(requestContextInterceptor);
 
+// ── Auto-refresh on 401 ──────────────────────────────────────────────────────
+// doRefresh: deve persistir os novos tokens e retornar o novo accessToken, ou null se falhar
+// onAuthFailure: chamado quando o refresh também falha (faz logout)
+type QueueEntry = { resolve: (token: string) => void; reject: (err: unknown) => void };
+let isRefreshing = false;
+let refreshQueue: QueueEntry[] = [];
+let doRefresh: (() => Promise<string | null>) | null = null;
+let onAuthFailure: (() => void) | null = null;
+
+export const setAuthHandlers = (
+  refreshFn: () => Promise<string | null>,
+  failureFn: () => void,
+) => {
+  doRefresh = refreshFn;
+  onAuthFailure = failureFn;
+};
+
+const flushQueue = (error: unknown, token: string | null) => {
+  refreshQueue.forEach(({ resolve, reject }) => error ? reject(error) : resolve(token!));
+  refreshQueue = [];
+};
+
+http.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status !== 401 || original._retry) {
+      throw error;
+    }
+
+    if (isRefreshing) {
+      return new Promise<string>((resolve, reject) => {
+        refreshQueue.push({ resolve, reject });
+      }).then((token) => {
+        original.headers.authorization = `Bearer ${token}`;
+        return http(original);
+      });
+    }
+
+    original._retry = true;
+    isRefreshing = true;
+
+    try {
+      const newToken = doRefresh ? await doRefresh() : null;
+      if (!newToken) {
+        flushQueue(error, null);
+        onAuthFailure?.();
+        throw error;
+      }
+      authToken = newToken;
+      flushQueue(null, newToken);
+      original.headers.authorization = `Bearer ${newToken}`;
+      return http(original);
+    } catch (refreshError) {
+      flushQueue(refreshError, null);
+      onAuthFailure?.();
+      throw refreshError;
+    } finally {
+      isRefreshing = false;
+    }
+  },
+);
+
 const parseApiMessage = (payload: unknown, fallback: string): string => {
   if (payload && typeof payload === "object" && "message" in payload && typeof (payload as { message?: unknown }).message === "string") {
     return (payload as { message: string }).message;
@@ -106,11 +169,18 @@ export interface ApiUser {
   email: string;
   phone: string | null;
   role: "USER" | "ADMIN" | "SUPER";
+  cargo: string | null;
+  mustChangePassword?: boolean;
+  hasPin?: boolean;
+  hasProfilePhoto?: boolean;
+  profilePhotoBase64?: string | null;
+  profilePhotoMime?: string | null;
 }
 
 export interface AuthPayload {
   accessToken: string;
   refreshToken: string;
+  mustChangePassword: boolean;
   user: ApiUser;
 }
 
@@ -131,6 +201,51 @@ export interface UserListItemPayload {
   email: string;
   phone: string | null;
   role: "USER" | "ADMIN" | "SUPER";
+  cargo: string | null;
+  mustChangePassword: boolean;
+  hasProfilePhoto?: boolean;
+  profilePhotoBase64?: string | null;
+  profilePhotoMime?: string | null;
+  createdAt: string;
+}
+
+export type UsersListFilters = {
+  q?: string;
+  unitId?: string;
+  slotPosition?: 1 | 2 | 3;
+  profile?: "PROPRIETARIO" | "LOCATARIO" | "HOSPEDE" | "ADMINISTRADOR" | "SUPER";
+};
+
+export interface CreateUserPayload {
+  name: string;
+  cpf: string;
+  email: string;
+  phone?: string | null;
+  role: "USER" | "ADMIN" | "SUPER";
+  cargo?: string | null;
+  password?: string;
+  mustChangePassword?: boolean;
+  profilePhotoBase64?: string | null;
+  profilePhotoMime?: string | null;
+}
+
+export interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  phone?: string | null;
+  role?: "USER" | "ADMIN" | "SUPER";
+  cargo?: string | null;
+  profilePhotoBase64?: string | null;
+  profilePhotoMime?: string | null;
+}
+
+export interface CreateUserResponse {
+  user: UserListItemPayload;
+  generatedPin: string | null;
+}
+
+export interface ResetPasswordResponse {
+  generatedPin: string | null;
 }
 
 export type MachineType = "WASHER" | "DRYER";
@@ -149,13 +264,31 @@ export interface MachinePayload {
 export interface MembershipPayload {
   id: string;
   userId: string;
+  userName?: string | null;
+  userCpf?: string | null;
   unitId: string;
   unitName: string;
   unitCode: string;
+  slotPosition: number;
   profile: string;
   startDate: string;
   endDate: string | null;
   active: boolean;
+}
+
+export interface MembershipSlotPayload {
+  slotPosition: 1 | 2 | 3;
+  current: MembershipPayload | null;
+  history: MembershipPayload[];
+}
+
+export interface SaveMembershipSlotPayload {
+  slotPosition: 1 | 2 | 3;
+  userId: string | null;
+  profile: "PROPRIETARIO" | "LOCATARIO" | "HOSPEDE" | "ADMINISTRADOR" | "SUPER" | null;
+  startDate: string | null;
+  endDate?: string | null;
+  active?: boolean;
 }
 
 export interface MembershipProfilePayload {
@@ -344,7 +477,15 @@ export const api = {
       request<AuthPayload>("POST", "/auth/login", input),
     refresh: (refreshToken: string) =>
       request<{ accessToken: string; refreshToken: string }>("POST", "/auth/refresh", { refreshToken }),
+    forgotPassword: (input: { identity: string }) =>
+      request<{ requested: boolean }>("POST", "/auth/forgot-password", input),
+    resetPassword: (input: { identity: string; pin: string; newPassword: string }) =>
+      request<{ changed: boolean }>("POST", "/auth/reset-password", input),
     me: () => request<ApiUser>("GET", "/auth/me"),
+    updateMe: (input: { email?: string; phone?: string | null; profilePhotoBase64?: string | null; profilePhotoMime?: string | null }) =>
+      request<ApiUser>("PATCH", "/auth/me", input),
+    changePassword: (input: { currentPassword: string; newPassword: string }) =>
+      request<{ changed: boolean }>("PATCH", "/auth/change-password", input),
   },
   units: {
     list: () => request<UnitPayload[]>("GET", "/units"),
@@ -352,11 +493,28 @@ export const api = {
       request<UnitPayload>("POST", "/units", input),
     update: (id: string, input: { floor?: number; unitNumber?: number; active?: boolean }) =>
       request<UnitPayload>("PATCH", `/units/${id}`, input),
+    getMembershipSlots: (id: string) =>
+      request<MembershipSlotPayload[]>("GET", `/units/${id}/membership-slots`),
+    saveMembershipSlots: (id: string, slots: SaveMembershipSlotPayload[]) =>
+      request<MembershipSlotPayload[]>("PUT", `/units/${id}/membership-slots`, { slots }),
     remove: (id: string) =>
       request<{ id: string; removed: boolean }>("DELETE", `/units/${id}`),
   },
   users: {
-    list: () => request<UserListItemPayload[]>("GET", "/users"),
+    list: (filters?: UsersListFilters) => {
+      const params = new URLSearchParams();
+      if (filters?.q?.trim()) params.set("q", filters.q.trim());
+      if (filters?.unitId?.trim()) params.set("unitId", filters.unitId.trim());
+      if (filters?.slotPosition) params.set("slotPosition", String(filters.slotPosition));
+      if (filters?.profile) params.set("profile", filters.profile);
+      const qs = params.toString();
+      return request<UserListItemPayload[]>("GET", qs ? `/users?${qs}` : "/users");
+    },
+    getById: (id: string) => request<UserListItemPayload>("GET", `/users/${id}`),
+    create: (input: CreateUserPayload) => request<CreateUserResponse>("POST", "/users", input),
+    update: (id: string, input: UpdateUserPayload) => request<UserListItemPayload>("PATCH", `/users/${id}`, input),
+    resetPassword: (id: string, input: { password?: string; mustChangePassword?: boolean }) => request<ResetPasswordResponse>("PATCH", `/users/${id}/reset-password`, input),
+    remove: (id: string) => request<{ deleted: boolean }>("DELETE", `/users/${id}`),
   },
   machines: {
     list: () => request<MachinePayload[]>("GET", "/machines"),

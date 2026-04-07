@@ -1,4 +1,6 @@
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/primitives";
+import { Eye, EyeOff, Trash2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/primitives";
+import { DataTable, type DataTableColumn, type DataTableAction } from "@/components/ui/DataTable";
 import type { UnitPayload } from "@/services/api";
 
 type UnitsTableCardProps = {
@@ -9,6 +11,36 @@ type UnitsTableCardProps = {
   onRemove: (unit: UnitPayload) => void;
 };
 
+const columns: DataTableColumn<UnitPayload>[] = [
+  {
+    header: "Codigo",
+    cell: (u) => <span className="font-medium text-primary">{u.code}</span>,
+  },
+  {
+    header: "Andar",
+    className: "hidden sm:table-cell text-muted-foreground",
+    cell: (u) => u.floor ?? "—",
+  },
+  {
+    header: "Unidade",
+    className: "hidden sm:table-cell text-muted-foreground",
+    cell: (u) => u.unitNumber ?? "—",
+  },
+  {
+    header: "Nome",
+    className: "hidden md:table-cell text-muted-foreground",
+    cell: (u) => u.name,
+  },
+  {
+    header: "Status",
+    cell: (u) => (
+      <span className={u.active ? "text-green-600 dark:text-green-400 text-xs font-medium" : "text-muted-foreground text-xs"}>
+        {u.active ? "Ativa" : "Oculta"}
+      </span>
+    ),
+  },
+];
+
 export default function UnitsTableCard({
   units,
   isUpdating,
@@ -16,51 +48,43 @@ export default function UnitsTableCard({
   onToggleActive,
   onRemove,
 }: UnitsTableCardProps) {
+  const actions: DataTableAction<UnitPayload>[] = [
+    {
+      label: "Ocultar",
+      icon: EyeOff,
+      onClick: onToggleActive,
+      disabled: (u) => !u.active || isUpdating,
+    },
+    {
+      label: "Mostrar",
+      icon: Eye,
+      onClick: onToggleActive,
+      disabled: (u) => u.active || isUpdating,
+    },
+    {
+      label: "Excluir",
+      icon: Trash2,
+      onClick: onRemove,
+      destructive: true,
+      separator: true,
+      disabled: () => isRemoving,
+    },
+  ];
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Tabela de Unidades</CardTitle>
         <CardDescription>Use ocultar para retirar da operacao sem apagar historico. Excluir remove permanentemente.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2 border-b pb-2 typo-caption text-muted-foreground">
-          <div>Codigo</div>
-          <div>Andar</div>
-          <div>Unidade</div>
-          <div>Nome</div>
-          <div>Status</div>
-          <div>Acoes</div>
-        </div>
-
-        {units.map((unit) => (
-          <div key={unit.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 rounded-md border p-3">
-            <p className="typo-label text-primary">{unit.code}</p>
-            <p className="typo-caption">{unit.floor ?? "-"}</p>
-            <p className="typo-caption">{unit.unitNumber ?? "-"}</p>
-            <p className="typo-caption">{unit.name}</p>
-            <p className="typo-caption">{unit.active ? "Ativa" : "Oculta"}</p>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onToggleActive(unit)}
-                disabled={isUpdating}
-              >
-                {unit.active ? "Ocultar" : "Mostrar"}
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => onRemove(unit)}
-                disabled={isRemoving}
-              >
-                Excluir
-              </Button>
-            </div>
-          </div>
-        ))}
-
-        {units.length === 0 ? <p className="typo-caption text-muted-foreground">Nenhuma unidade cadastrada.</p> : null}
+      <CardContent>
+        <DataTable
+          data={units}
+          keyExtractor={(u) => u.id}
+          columns={columns}
+          actions={actions}
+          emptyMessage="Nenhuma unidade cadastrada."
+        />
       </CardContent>
     </Card>
   );

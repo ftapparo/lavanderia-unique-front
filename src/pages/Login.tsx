@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import BrandLogo from "@/components/BrandLogo";
 import { Button, Checkbox, Input, Label, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/primitives";
@@ -12,6 +12,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(() => localStorage.getItem("tpl_remember_me") === "true");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   const [identity, setIdentity] = useState("admin@unique.local");
   const [password, setPassword] = useState("admin123");
@@ -63,6 +65,10 @@ export default function Login() {
     setError(result.error || "Falha ao cadastrar.");
   };
 
+  const handleForgotPassword = () => {
+    navigate("/esqueci-senha");
+  };
+
   return (
     <div className="relative isolate min-h-screen overflow-hidden bg-background sm:bg-transparent">
       <div className="absolute inset-0 z-0 hidden sm:block">
@@ -109,19 +115,38 @@ export default function Login() {
 
                     <div>
                       <Label htmlFor="password" className="typo-label text-foreground">Senha</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="h-9"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className="h-9 pr-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(Boolean(checked))} />
-                      <Label htmlFor="remember-me" className="cursor-pointer typo-caption text-foreground">Lembrar de mim</Label>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(Boolean(checked))} />
+                        <Label htmlFor="remember-me" className="cursor-pointer typo-caption text-foreground">Lembrar de mim</Label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        className="typo-caption text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                      >
+                        Esqueceu a senha?
+                      </button>
                     </div>
 
                     {error ? <div className="state-danger-soft rounded-md border p-3 typo-body font-medium">{error}</div> : null}
@@ -155,14 +180,24 @@ export default function Login() {
                     </div>
                     <div>
                       <Label htmlFor="registerPassword" className="typo-label text-foreground">Senha</Label>
-                      <Input
-                        id="registerPassword"
-                        type="password"
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        required
-                        className="h-9"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="registerPassword"
+                          type={showRegisterPassword ? "text" : "password"}
+                          value={registerPassword}
+                          onChange={(e) => setRegisterPassword(e.target.value)}
+                          required
+                          className="h-9 pr-9"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          tabIndex={-1}
+                        >
+                          {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     {error ? <div className="state-danger-soft rounded-md border p-3 typo-body font-medium">{error}</div> : null}

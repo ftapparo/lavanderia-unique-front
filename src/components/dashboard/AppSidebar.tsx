@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2, Gauge, AlertTriangle, FileSpreadsheet, SlidersHorizontal } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2, Gauge, AlertTriangle, FileSpreadsheet, SlidersHorizontal, Users } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
@@ -17,22 +17,59 @@ import {
   useSidebar,
 } from "@/components/ui/primitives";
 
-const menuItems = [
+type NavItem = { title: string; url: string; icon: React.ElementType };
+
+const menuItems: NavItem[] = [
   { title: "Visao Geral", url: "/dashboard", icon: LayoutDashboard },
   { title: "Reservas", url: "/dashboard/reservas", icon: CalendarClock },
   { title: "Configuracoes", url: "/dashboard/configuracoes", icon: Settings },
 ];
 
-const adminItems = [
-  { title: "Admin Dashboard", url: "/dashboard/admin/dashboard", icon: Gauge },
-  { title: "Admin Unidades", url: "/dashboard/admin/unidades", icon: Building2 },
-  { title: "Admin Maquinas", url: "/dashboard/admin/maquinas", icon: WashingMachine },
-  { title: "Admin Pares", url: "/dashboard/admin/pares", icon: Link2 },
-  { title: "Admin Vinculos", url: "/dashboard/admin/vinculos", icon: Link2 },
-  { title: "Admin Ocorrencias", url: "/dashboard/admin/ocorrencias", icon: AlertTriangle },
-  { title: "Admin Faturamento", url: "/dashboard/admin/faturamento", icon: FileSpreadsheet },
-  { title: "Admin Sistema", url: "/dashboard/admin/sistema", icon: SlidersHorizontal },
+const adminOperationsItems: NavItem[] = [
+  { title: "Dashboard", url: "/dashboard/admin/dashboard", icon: Gauge },
+  { title: "Ocorrencias", url: "/dashboard/admin/ocorrencias", icon: AlertTriangle },
+  { title: "Faturamento", url: "/dashboard/admin/faturamento", icon: FileSpreadsheet },
+  { title: "Sistema", url: "/dashboard/admin/sistema", icon: SlidersHorizontal },
 ];
+
+const adminPeopleItems: NavItem[] = [
+  { title: "Usuarios", url: "/dashboard/admin/usuarios", icon: Users },
+  { title: "Unidades", url: "/dashboard/admin/unidades", icon: Building2 },
+];
+
+const adminEquipmentItems: NavItem[] = [
+  { title: "Maquinas", url: "/dashboard/admin/maquinas", icon: WashingMachine },
+  { title: "Pares", url: "/dashboard/admin/pares", icon: Link2 },
+];
+
+function NavItems({ items, isCollapsed }: { items: NavItem[]; isCollapsed: boolean }) {
+  return (
+    <>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.title}>
+          <SidebarMenuButton asChild tooltip={item.title}>
+            <NavLink
+              to={item.url}
+              end={item.url === "/dashboard"}
+              className={`flex items-center gap-3 ${isCollapsed
+                ? "text-primary-foreground/90 hover:bg-primary-dark/40 hover:text-primary-foreground"
+                : ""
+                }`}
+              activeClassName={
+                isCollapsed
+                  ? "bg-primary-dark/50 text-primary-foreground font-medium"
+                  : "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              }
+            >
+              <item.icon className={`h-4 w-4 ${isCollapsed ? "text-primary-foreground" : ""}`} />
+              <span>{item.title}</span>
+            </NavLink>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </>
+  );
+}
 
 export default function AppSidebar() {
   const { profile } = useAuth();
@@ -57,55 +94,44 @@ export default function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>Geral</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/dashboard"}
-                      className={`flex items-center gap-3 ${isCollapsed
-                        ? "text-primary-foreground/90 hover:bg-primary-dark/40 hover:text-primary-foreground"
-                        : ""
-                        }`}
-                      activeClassName={
-                        isCollapsed
-                          ? "bg-primary-dark/50 text-primary-foreground font-medium"
-                          : "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      }
-                    >
-                      <item.icon className={`h-4 w-4 ${isCollapsed ? "text-primary-foreground" : ""}`} />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {isAdmin && adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink
-                      to={item.url}
-                      className={`flex items-center gap-3 ${isCollapsed
-                        ? "text-primary-foreground/90 hover:bg-primary-dark/40 hover:text-primary-foreground"
-                        : ""
-                        }`}
-                      activeClassName={
-                        isCollapsed
-                          ? "bg-primary-dark/50 text-primary-foreground font-medium"
-                          : "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      }
-                    >
-                      <item.icon className={`h-4 w-4 ${isCollapsed ? "text-primary-foreground" : ""}`} />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <NavItems items={menuItems} isCollapsed={isCollapsed} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Gestao</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <NavItems items={adminOperationsItems} isCollapsed={isCollapsed} />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Usuarios e Unidades</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <NavItems items={adminPeopleItems} isCollapsed={isCollapsed} />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Maquinas</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <NavItems items={adminEquipmentItems} isCollapsed={isCollapsed} />
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">

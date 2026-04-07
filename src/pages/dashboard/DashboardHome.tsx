@@ -4,6 +4,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/primitives";
 import { api, type MembershipPayload, type UnitPayload } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { getUserRoleLabel } from "@/lib/user-role-labels";
 
 export default function DashboardHome() {
   const { profile } = useAuth();
@@ -54,7 +55,7 @@ export default function DashboardHome() {
           </div>
           <div>
             <p className="typo-caption text-muted-foreground">Role</p>
-            <p className="typo-body font-medium">{profile?.role || "-"}</p>
+            <p className="typo-body font-medium">{profile?.role ? getUserRoleLabel(profile.role) : "-"}</p>
           </div>
           <div>
             <p className="typo-caption text-muted-foreground">E-mail</p>

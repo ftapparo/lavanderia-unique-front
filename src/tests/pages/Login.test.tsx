@@ -55,4 +55,14 @@ describe("Login page", () => {
     });
   });
 
+  it("navigates to forgot-password page", async () => {
+    render(<Login />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Esqueceu a senha?" }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith("/esqueci-senha");
+    });
+  });
+
 });

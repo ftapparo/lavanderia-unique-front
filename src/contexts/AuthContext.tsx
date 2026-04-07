@@ -1,15 +1,18 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
-import { api, setApiAuthToken, type ApiUser } from "@/services/api";
+import { api, setApiAuthToken, setAuthHandlers, type ApiUser } from "@/services/api";
 import { AUTH_STORAGE_KEYS } from "@/config/app-config";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  mustChangePassword: boolean;
   user: string | null;
   profile: ApiUser | null;
   accessToken: string | null;
   login: (identity: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   register: (input: { name: string; cpf: string; email: string; phone?: string; password: string; rememberMe?: boolean }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  clearMustChangePassword: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -49,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initial = loadAuthSnapshot();
 
   const [isAuthenticated, setIsAuthenticated] = useState(Boolean(initial.token));
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [user, setUser] = useState<string | null>(initial.user);
   const [profile, setProfile] = useState<ApiUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(initial.token);
@@ -84,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       persist(payload.accessToken, payload.refreshToken, payload.user.name, rememberMe);
       setAccessToken(payload.accessToken);
       setIsAuthenticated(true);
+      setMustChangePassword(payload.mustChangePassword ?? false);
       setUser(payload.user.name);
       setProfile(payload.user);
 
@@ -115,8 +120,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const clearMustChangePassword = useCallback(() => {
+    setMustChangePassword(false);
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!accessToken) return;
+    const me = await api.auth.me();
+    setProfile(me);
+    setUser(me.name);
+    setMustChangePassword(me.mustChangePassword ?? false);
+  }, [accessToken]);
+
   const logout = useCallback(async () => {
     setIsAuthenticated(false);
+    setMustChangePassword(false);
     setUser(null);
     setProfile(null);
     setAccessToken(null);
@@ -125,18 +143,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const tryRefreshSession = useCallback(async (): Promise<boolean> => {
     const snapshot = loadAuthSnapshot();
-    if (!snapshot.refreshToken) {
-      return false;
-    }
+    if (!snapshot.refreshToken) return false;
 
     try {
       const refreshed = await api.auth.refresh(snapshot.refreshToken);
-      persist(
-        refreshed.accessToken,
-        refreshed.refreshToken,
-        snapshot.user || user || "",
-        snapshot.persistent,
-      );
+      persist(refreshed.accessToken, refreshed.refreshToken, snapshot.user || user || "", snapshot.persistent);
       setAccessToken(refreshed.accessToken);
       setIsAuthenticated(true);
       return true;
@@ -145,6 +156,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  // Fornece ao interceptor axios a capacidade de renovar o token automaticamente
+  useEffect(() => {
+    setAuthHandlers(
+      async () => {
+        const snapshot = loadAuthSnapshot();
+        if (!snapshot.refreshToken) return null;
+        try {
+          const refreshed = await api.auth.refresh(snapshot.refreshToken);
+          persist(refreshed.accessToken, refreshed.refreshToken, snapshot.user || "", snapshot.persistent);
+          setAccessToken(refreshed.accessToken);
+          setIsAuthenticated(true);
+          return refreshed.accessToken;
+        } catch {
+          return null;
+        }
+      },
+      () => {
+        setIsAuthenticated(false);
+        setMustChangePassword(false);
+        setUser(null);
+        setProfile(null);
+        setAccessToken(null);
+        clearStorages();
+      },
+    );
+  }, []);
+
   useEffect(() => {
     const syncProfile = async () => {
       if (!accessToken) {
@@ -152,9 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const me = await api.auth.me();
-        setProfile(me);
-        setUser(me.name);
+        await refreshProfile();
       } catch {
         const refreshed = await tryRefreshSession();
         if (!refreshed) {
@@ -164,10 +200,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     void syncProfile();
-  }, [accessToken, logout, tryRefreshSession]);
+  }, [accessToken, logout, tryRefreshSession, refreshProfile]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, profile, accessToken, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, mustChangePassword, user, profile, accessToken, login, register, logout, clearMustChangePassword, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
