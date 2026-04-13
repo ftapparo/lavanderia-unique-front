@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Card, CardContent } from "@/components/ui/primitives";
 import { api, type MembershipPayload, type UnitPayload } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserRoleLabel } from "@/lib/user-role-labels";
@@ -44,10 +45,7 @@ export default function DashboardHome() {
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Perfil Atual</CardTitle>
-          <CardDescription>Informacoes carregadas a partir do endpoint /v1/api/auth/me.</CardDescription>
-        </CardHeader>
+        <SectionCardHeader title="Perfil Atual" description="Informacoes carregadas a partir do endpoint /v1/api/auth/me." />
         <CardContent className="grid gap-2 sm:grid-cols-2">
           <div>
             <p className="typo-caption text-muted-foreground">Nome</p>
@@ -70,10 +68,7 @@ export default function DashboardHome() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Unidades</CardTitle>
-            <CardDescription>Lista retornada por /v1/api/units.</CardDescription>
-          </CardHeader>
+          <SectionCardHeader title="Unidades" description="Lista retornada por /v1/api/units." />
           <CardContent className="space-y-2">
             {loading ? <p className="typo-caption text-muted-foreground">Carregando...</p> : null}
             {!loading && units.length === 0 ? <p className="typo-caption text-muted-foreground">Nenhuma unidade encontrada.</p> : null}
@@ -87,10 +82,7 @@ export default function DashboardHome() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Vinculos</CardTitle>
-            <CardDescription>Leitura inicial de /v1/api/unit-memberships.</CardDescription>
-          </CardHeader>
+          <SectionCardHeader title="Vinculos" description="Leitura inicial de /v1/api/unit-memberships." />
           <CardContent className="space-y-2">
             {loading ? <p className="typo-caption text-muted-foreground">Carregando...</p> : null}
             {!loading && memberships.length === 0 ? <p className="typo-caption text-muted-foreground">Nenhum vinculo encontrado.</p> : null}
@@ -108,9 +100,7 @@ export default function DashboardHome() {
 
       {error ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Falha de carregamento</CardTitle>
-          </CardHeader>
+          <SectionCardHeader title="Falha de carregamento" />
           <CardContent>
             <p className="typo-body text-destructive">{error}</p>
           </CardContent>

@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Card, CardContent } from "@/components/ui/primitives";
 import type { MachinePairPayload } from "@/services/api";
 
 type MachinePairListCardProps = {
@@ -8,9 +9,7 @@ type MachinePairListCardProps = {
 export default function MachinePairListCard({ pairs }: MachinePairListCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Pares Cadastrados</CardTitle>
-      </CardHeader>
+      <SectionCardHeader title="Pares Cadastrados" />
       <CardContent className="space-y-3">
         {pairs.map((pair) => (
           <div key={pair.id} className="rounded-md border p-3">

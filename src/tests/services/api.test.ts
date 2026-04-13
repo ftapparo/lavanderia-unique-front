@@ -5,16 +5,18 @@ import { api } from "@/services/api";
 vi.mock("axios", () => {
   const request = vi.fn();
   const requestUse = vi.fn();
+  const responseUse = vi.fn();
 
   return {
     default: {
-      create: vi.fn(() => ({ request, interceptors: { request: { use: requestUse } } })),
+      create: vi.fn(() => ({ request, interceptors: { request: { use: requestUse }, response: { use: responseUse } } })),
       isAxiosError: (error: unknown) => Boolean((error as { isAxiosError?: boolean })?.isAxiosError),
     },
-    create: vi.fn(() => ({ request, interceptors: { request: { use: requestUse } } })),
+    create: vi.fn(() => ({ request, interceptors: { request: { use: requestUse }, response: { use: responseUse } } })),
     isAxiosError: (error: unknown) => Boolean((error as { isAxiosError?: boolean })?.isAxiosError),
     __request: request,
     __requestUse: requestUse,
+    __responseUse: responseUse,
   };
 });
 

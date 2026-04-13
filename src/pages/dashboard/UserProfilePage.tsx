@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
 import {
   Avatar,
   AvatarFallback,
@@ -9,9 +10,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Input,
   Label,
 } from "@/components/ui/primitives";
@@ -169,10 +167,7 @@ export default function UserProfilePage() {
 
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <Card>
-          <CardHeader>
-            <CardTitle>Foto de perfil</CardTitle>
-            <CardDescription>Esta imagem será exibida na barra superior.</CardDescription>
-          </CardHeader>
+          <SectionCardHeader title="Foto de perfil" description="Esta imagem será exibida na barra superior." />
           <CardContent className="space-y-4">
             <div className="flex justify-center">
               <Avatar className="h-28 w-28 border border-border">
@@ -188,7 +183,7 @@ export default function UserProfilePage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full"
+                className="w-full hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => {
                   setPhotoPreview(null);
                   setPhotoBase64(null);
@@ -204,10 +199,7 @@ export default function UserProfilePage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Dados da conta</CardTitle>
-            <CardDescription>Somente e-mail e telefone podem ser alterados.</CardDescription>
-          </CardHeader>
+          <SectionCardHeader title="Dados da conta" description="Somente e-mail e telefone podem ser alterados." />
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Nome</Label>
@@ -245,4 +237,3 @@ export default function UserProfilePage() {
     </PageContainer>
   );
 }
-

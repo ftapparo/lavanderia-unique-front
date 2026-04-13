@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
+import { SectionHeader } from "@/components/ui/composites";
 import { Button } from "@/components/ui/primitives";
 import { api, type MachinePayload, type MachineType } from "@/services/api";
 import { notify } from "@/lib/notify";
@@ -118,10 +119,7 @@ export default function AdminMachinesPage() {
       />
 
       <div className="space-y-4">
-        <div>
-          <h2 className="typo-title">Maquinas cadastradas</h2>
-          <p className="typo-caption text-muted-foreground">Cada card representa uma maquina individual.</p>
-        </div>
+        <SectionHeader title="Maquinas cadastradas" description="Cada card representa uma maquina individual." />
 
         {machines.length === 0 ? (
           <p className="typo-caption text-muted-foreground">Nenhuma maquina cadastrada.</p>

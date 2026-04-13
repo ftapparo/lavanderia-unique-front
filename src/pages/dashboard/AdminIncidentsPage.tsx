@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Badge, Card, CardContent } from "@/components/ui/primitives";
 import { api } from "@/services/api";
 
 const variantByType = (type: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -26,9 +27,7 @@ export default function AdminIncidentsPage() {
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Lista de Ocorrencias</CardTitle>
-        </CardHeader>
+        <SectionCardHeader title="Lista de Ocorrencias" />
         <CardContent className="space-y-3">
           {incidentsQuery.isLoading ? <p className="typo-caption text-muted-foreground">Carregando ocorrencias...</p> : null}
           {incidentsQuery.isError ? (

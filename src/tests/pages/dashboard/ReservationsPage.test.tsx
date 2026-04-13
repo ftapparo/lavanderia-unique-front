@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import ReservationsPage from "@/pages/dashboard/ReservationsPage";
 
 vi.mock("@/components/ui/primitives", async (importOriginal) => {
@@ -12,6 +12,7 @@ vi.mock("@/components/ui/primitives", async (importOriginal) => {
 });
 
 vi.mock("@/services/api", () => ({
+  getEstimatedServerNow: vi.fn(() => new Date("2026-03-10T12:00:00.000Z")),
   api: {
     units: {
       list: vi.fn(async () => [
@@ -54,6 +55,21 @@ vi.mock("@/services/api", () => ({
     users: {
       list: vi.fn(async () => []),
     },
+    settings: {
+      get: vi.fn(async () => ({
+        checkinWindowBeforeMinutes: 15,
+        checkinWindowAfterMinutes: 30,
+        reservationDurationHours: 2,
+        reservationStartMode: "FULL_HOUR",
+        overtimeThresholdWatts: 15,
+        consumptionPollSeconds: 30,
+        billingMode: "PER_USE",
+        pricePerUse: 0,
+        pricePerKwh: 0,
+        updatedByUserId: null,
+        updatedAt: "2026-03-10T12:00:00.000Z",
+      })),
+    },
     reservations: {
       list: vi.fn(async () => [
         {
@@ -83,6 +99,19 @@ vi.mock("@/services/api", () => ({
     },
   },
 }));
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const setDesktopViewport = () => {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: 1920,
+  });
+  window.dispatchEvent(new Event("resize"));
+};
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
@@ -115,6 +144,10 @@ vi.mock("@/lib/notify", () => ({
 
 describe("ReservationsPage", () => {
   it("renders teams-like weekly calendar layout", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-10T12:00:00.000Z"));
+    setDesktopViewport();
+
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -130,11 +163,44 @@ describe("ReservationsPage", () => {
     expect(screen.getByRole("button", { name: "Hoje" })).toBeInTheDocument();
     expect(screen.getByText(/Unidade:/)).toBeInTheDocument();
 
-    await waitForElementToBeRemoved(() => screen.getByText("Carregando agenda..."));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
     expect(screen.getByText("Hora")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "New meeting" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: ">" }));
     expect(screen.getByText(/Unidade:/)).toBeInTheDocument();
+  });
+
+  it("blocks booking creation for past slots and keeps future slots available", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-10T12:00:00.000Z"));
+    setDesktopViewport();
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReservationsPage />
+      </QueryClientProvider>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+
+    const calendarDayColumns = screen.getAllByRole("button").filter((element) => element.getAttribute("tabindex") === "0");
+    expect(calendarDayColumns).toHaveLength(7);
+
+    fireEvent.click(calendarDayColumns[2]);
+    expect(screen.queryByText("Nova Reserva")).not.toBeInTheDocument();
+
+    fireEvent.click(calendarDayColumns[6]);
+    expect(screen.getByText("Nova Reserva")).toBeInTheDocument();
   });
 });

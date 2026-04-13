@@ -11,6 +11,7 @@ type ApiError = Error & { status?: number; payload?: unknown };
 
 const BASE_URL = APP_API_BASE_URL.replace(/\/+$/, "");
 let authToken: string | null = null;
+let serverTimeOffsetMs = 0;
 
 const http: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -38,6 +39,13 @@ const requestContextInterceptor = (config: any) => {
 
 http.interceptors.request.use(requestContextInterceptor);
 
+const syncServerTimeOffset = (headerValue: unknown) => {
+  if (typeof headerValue !== "string" || !headerValue.trim()) return;
+  const parsed = new Date(headerValue);
+  if (Number.isNaN(parsed.getTime())) return;
+  serverTimeOffsetMs = parsed.getTime() - Date.now();
+};
+
 // ── Auto-refresh on 401 ──────────────────────────────────────────────────────
 // doRefresh: deve persistir os novos tokens e retornar o novo accessToken, ou null se falhar
 // onAuthFailure: chamado quando o refresh também falha (faz logout)
@@ -61,7 +69,10 @@ const flushQueue = (error: unknown, token: string | null) => {
 };
 
 http.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    syncServerTimeOffset(res.headers?.date);
+    return res;
+  },
   async (error) => {
     const original = error.config;
     if (error.response?.status !== 401 || original._retry) {
@@ -156,6 +167,8 @@ const request = async <T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", p
 export const setApiAuthToken = (token: string | null) => {
   authToken = token;
 };
+
+export const getEstimatedServerNow = (): Date => new Date(Date.now() + serverTimeOffsetMs);
 
 export interface HealthResponse {
   status: string;
@@ -386,6 +399,8 @@ export interface IncidentPayload {
 export interface SystemSettingsPayload {
   checkinWindowBeforeMinutes: number;
   checkinWindowAfterMinutes: number;
+  reservationDurationHours: number;
+  reservationStartMode: "ANY_TIME" | "FULL_HOUR";
   overtimeThresholdWatts: number;
   consumptionPollSeconds: number;
   billingMode: "PER_USE" | "PER_KWH";

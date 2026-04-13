@@ -13,3 +13,4 @@ export type { TablePagePanelProps } from "./table-page-panel";
 export { TableCardSection } from "./table-card-section";
 export type { TableCardSectionProps } from "./table-card-section";
 export type { TableColumn, TableDataset } from "./table.types";
+export { SectionHeader } from "./section-header";

@@ -532,7 +532,12 @@ export default function AdminManageUnitLinksPage() {
                         <DropdownMenuItem onClick={() => openSlotSelector(1, "replace_owner")}>Trocar titular</DropdownMenuItem>
                       ) : null}
                       {canDelete ? (
-                        <DropdownMenuItem onClick={() => requestDelete(slot.slotPosition)}>Excluir vínculo</DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => requestDelete(slot.slotPosition)}
+                          className="hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
+                        >
+                          Excluir vínculo
+                        </DropdownMenuItem>
                       ) : null}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -759,7 +764,12 @@ export default function AdminManageUnitLinksPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Excluir vínculo</AlertDialogAction>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="border border-input bg-background text-foreground hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+            >
+              Excluir vínculo
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
 import type { MachinePairPayload, UnitPayload, UserListItemPayload } from "@/services/api";
 
 type ReservationBookingDialogProps = {
@@ -8,6 +8,9 @@ type ReservationBookingDialogProps = {
   bookingUnitId: string;
   bookingUserId: string;
   bookingMachinePairId: string;
+  allowAnyTime: boolean;
+  reservationDurationHours: number;
+  bookingTimeValue: string;
   isAdmin: boolean;
   autoUnit: UnitPayload | null;
   units: UnitPayload[];
@@ -18,6 +21,7 @@ type ReservationBookingDialogProps = {
   onUnitChange: (value: string) => void;
   onUserChange: (value: string) => void;
   onPairChange: (value: string) => void;
+  onTimeChange: (value: string) => void;
   onSubmit: () => void;
 };
 
@@ -28,6 +32,9 @@ export default function ReservationBookingDialog({
   bookingUnitId,
   bookingUserId,
   bookingMachinePairId,
+  allowAnyTime,
+  reservationDurationHours,
+  bookingTimeValue,
   isAdmin,
   autoUnit,
   units,
@@ -38,6 +45,7 @@ export default function ReservationBookingDialog({
   onUnitChange,
   onUserChange,
   onPairChange,
+  onTimeChange,
   onSubmit,
 }: ReservationBookingDialogProps) {
   return (
@@ -46,16 +54,25 @@ export default function ReservationBookingDialog({
         <DialogHeader>
           <DialogTitle>Nova Reserva</DialogTitle>
           <DialogDescription>
-            Selecione o par de maquinas e confirme o horario de 2 horas.
+            Selecione o par de maquinas e confirme o horario de {reservationDurationHours} hora(s).
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1">
             <Label>Horario</Label>
-            <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption">
-              {bookingStartAt ? formatDateTime(bookingStartAt) : "-"}
-            </div>
+            {allowAnyTime ? (
+              <div className="space-y-2">
+                <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption">
+                  {bookingStartAt ? formatDateTime(bookingStartAt) : "-"}
+                </div>
+                <Input type="time" step={60} value={bookingTimeValue} onChange={(event) => onTimeChange(event.target.value)} />
+              </div>
+            ) : (
+              <div className="rounded-md border bg-muted/20 px-3 py-2 typo-caption">
+                {bookingStartAt ? formatDateTime(bookingStartAt) : "-"}
+              </div>
+            )}
           </div>
 
           {isAdmin ? (

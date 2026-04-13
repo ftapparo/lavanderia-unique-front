@@ -121,7 +121,7 @@ export default function LinkUserDialog({
                 </div>
                 <button
                   onClick={() => { setSelectedUser(null); setSearch(""); setDebouncedSearch(""); }}
-                  className="rounded p-0.5 hover:bg-muted transition-colors"
+                  className="rounded p-0.5 transition-colors hover:bg-destructive/10 hover:text-destructive"
                   aria-label="Remover seleção"
                 >
                   <X className="h-4 w-4 text-muted-foreground" />

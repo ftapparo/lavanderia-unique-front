@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button, Card, CardContent, CardHeader, CardTitle, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Label } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Button, Card, CardContent, Dialog, DialogContent, DialogHeader, DialogTitle, Input, Label } from "@/components/ui/primitives";
 import { api, type InvoiceDetailsPayload, type InvoicePayload } from "@/services/api";
 import { notify } from "@/lib/notify";
 
@@ -47,9 +48,7 @@ export default function AdminBillingPage() {
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Executar Fechamento</CardTitle>
-        </CardHeader>
+        <SectionCardHeader title="Executar Fechamento" />
         <CardContent className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
           <div className="space-y-2">
             <Label>Competencia (YYYY-MM)</Label>
@@ -62,9 +61,7 @@ export default function AdminBillingPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Faturas</CardTitle>
-        </CardHeader>
+        <SectionCardHeader title="Faturas" />
         <CardContent className="space-y-3">
           {(invoicesQuery.data || []).map((invoice) => (
             <div key={invoice.id} className="rounded-md border p-3">

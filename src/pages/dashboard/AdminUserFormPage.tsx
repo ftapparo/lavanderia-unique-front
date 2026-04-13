@@ -301,7 +301,7 @@ export default function AdminUserFormPage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full"
+                className="w-full hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => {
                   setPhotoPreview(null);
                   setPhotoBase64(null);

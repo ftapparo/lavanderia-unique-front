@@ -4,6 +4,7 @@ import { Eye, EyeOff, Plus, Settings2, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
+import { SectionHeader } from "@/components/ui/composites";
 import { DataTable, type DataTableAction, type DataTableBulkAction, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/primitives";
 import { api, type MembershipPayload, type UnitPayload } from "@/services/api";
@@ -214,12 +215,10 @@ export default function AdminUnitsPage() {
       />
 
       <section className="space-y-4">
-        <div>
-          <h2 className="typo-section-title">Unidades cadastradas</h2>
-          <p className="typo-caption text-muted-foreground">
-            {units.length} unidade{units.length !== 1 ? "s" : ""} no sistema.
-          </p>
-        </div>
+        <SectionHeader
+          title="Unidades cadastradas"
+          description={`${units.length} unidade${units.length !== 1 ? "s" : ""} no sistema.`}
+        />
         <DataTable
           data={units}
           keyExtractor={(u) => u.id}

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Button, Card, CardContent, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
 import { api } from "@/services/api";
 import { notify } from "@/lib/notify";
 
@@ -14,6 +15,8 @@ export default function AdminSystemSettingsPage() {
 
   const [checkinBefore, setCheckinBefore] = useState("15");
   const [checkinAfter, setCheckinAfter] = useState("30");
+  const [reservationDurationHours, setReservationDurationHours] = useState("2");
+  const [reservationStartMode, setReservationStartMode] = useState<"ANY_TIME" | "FULL_HOUR">("FULL_HOUR");
   const [overtimeThreshold, setOvertimeThreshold] = useState("15");
   const [pollSeconds, setPollSeconds] = useState("30");
   const [billingMode, setBillingMode] = useState<"PER_USE" | "PER_KWH">("PER_USE");
@@ -24,6 +27,8 @@ export default function AdminSystemSettingsPage() {
     if (!settingsQuery.data) return;
     setCheckinBefore(String(settingsQuery.data.checkinWindowBeforeMinutes));
     setCheckinAfter(String(settingsQuery.data.checkinWindowAfterMinutes));
+    setReservationDurationHours(String(settingsQuery.data.reservationDurationHours));
+    setReservationStartMode(settingsQuery.data.reservationStartMode);
     setOvertimeThreshold(String(settingsQuery.data.overtimeThresholdWatts));
     setPollSeconds(String(settingsQuery.data.consumptionPollSeconds));
     setBillingMode(settingsQuery.data.billingMode);
@@ -35,6 +40,8 @@ export default function AdminSystemSettingsPage() {
     mutationFn: () => api.settings.update({
       checkinWindowBeforeMinutes: Number(checkinBefore),
       checkinWindowAfterMinutes: Number(checkinAfter),
+      reservationDurationHours: Number(reservationDurationHours),
+      reservationStartMode,
       overtimeThresholdWatts: Number(overtimeThreshold),
       consumptionPollSeconds: Number(pollSeconds),
       billingMode,
@@ -49,13 +56,11 @@ export default function AdminSystemSettingsPage() {
     <PageContainer>
       <PageHeader
         title="Configuracoes Operacionais"
-        description="Parametros de check-in, overtime, polling e cobranca."
+        description="Parametros de reserva, check-in, overtime, polling e cobranca."
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Parametros do Sistema</CardTitle>
-        </CardHeader>
+        <SectionCardHeader title="Parametros do Sistema" />
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Check-in antes (min)</Label>
@@ -64,6 +69,20 @@ export default function AdminSystemSettingsPage() {
           <div className="space-y-2">
             <Label>Check-in depois (min)</Label>
             <Input value={checkinAfter} onChange={(e) => setCheckinAfter(e.target.value)} inputMode="numeric" />
+          </div>
+          <div className="space-y-2">
+            <Label>Duracao da reserva (h)</Label>
+            <Input value={reservationDurationHours} onChange={(e) => setReservationDurationHours(e.target.value)} inputMode="numeric" />
+          </div>
+          <div className="space-y-2">
+            <Label>Inicio da reserva</Label>
+            <Select value={reservationStartMode} onValueChange={(value) => setReservationStartMode(value as "ANY_TIME" | "FULL_HOUR")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FULL_HOUR">Hora cheia</SelectItem>
+                <SelectItem value="ANY_TIME">Qualquer horario</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Threshold overtime (W)</Label>

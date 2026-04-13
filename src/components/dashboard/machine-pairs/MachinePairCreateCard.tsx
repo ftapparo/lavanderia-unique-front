@@ -1,4 +1,5 @@
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Button, Card, CardContent, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/primitives";
 import type { MachinePayload } from "@/services/api";
 
 type MachinePairCreateCardProps = {
@@ -30,10 +31,7 @@ export default function MachinePairCreateCard({
 }: MachinePairCreateCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Novo Par</CardTitle>
-        <CardDescription>Selecione uma lavadora e uma secadora para montar o par.</CardDescription>
-      </CardHeader>
+      <SectionCardHeader title="Novo Par" description="Selecione uma lavadora e uma secadora para montar o par." />
       <CardContent className="grid gap-4 md:grid-cols-[2fr_2fr_2fr_auto] md:items-end">
         <div className="space-y-2">
           <Label>Nome do par</Label>

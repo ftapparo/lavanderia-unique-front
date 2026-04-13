@@ -1,15 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/ui/primitives";
+import SectionCardHeader from "@/components/layout/SectionCardHeader";
+import { Button, Card, CardContent } from "@/components/ui/primitives";
 import { api } from "@/services/api";
 import { notify } from "@/lib/notify";
 
 const MetricCard = ({ title, value }: { title: string; value: number }) => (
   <Card>
-    <CardHeader>
-      <CardTitle>{title}</CardTitle>
-    </CardHeader>
+    <SectionCardHeader title={title} />
     <CardContent>
       <p className="text-3xl font-semibold text-primary">{value}</p>
     </CardContent>
@@ -71,9 +70,7 @@ export default function AdminOpsDashboardPage() {
             <MetricCard title="Faturas" value={dashboardQuery.data.invoicesTotal} />
           </div>
           <Card>
-            <CardHeader>
-              <CardTitle>Jobs Operacionais</CardTitle>
-            </CardHeader>
+            <SectionCardHeader title="Jobs Operacionais" />
             <CardContent className="space-y-2">
               <p className="typo-caption text-muted-foreground">
                 Scheduler: {dashboardQuery.data.jobs.started ? "ativo" : "inativo"} | Retry: {dashboardQuery.data.jobs.retry.attempts} tentativa(s)
@@ -92,9 +89,7 @@ export default function AdminOpsDashboardPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-              <CardTitle>Saude Operacional</CardTitle>
-            </CardHeader>
+            <SectionCardHeader title="Saude Operacional" />
             <CardContent className="space-y-1">
               <p className="typo-caption">Banco: <strong>{opsHealthQuery.data?.db || "-"}</strong></p>
               <p className="typo-caption">Tuya: <strong>{opsHealthQuery.data?.tuya || "-"}</strong></p>
@@ -106,9 +101,7 @@ export default function AdminOpsDashboardPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-              <CardTitle>Reconciliacao de Sessoes Ativas</CardTitle>
-            </CardHeader>
+            <SectionCardHeader title="Reconciliacao de Sessoes Ativas" />
             <CardContent className="space-y-2">
               {(activeSessionsQuery.data || []).length === 0 ? (
                 <p className="typo-caption text-muted-foreground">Nenhuma sessao ativa no momento.</p>

@@ -44,7 +44,8 @@ export default function ReservationCancelDialog({
             Voltar
           </Button>
           <Button
-            variant="destructive"
+            variant="outline"
+            className="hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
             onClick={onConfirmCancel}
             disabled={cancelPending}
           >

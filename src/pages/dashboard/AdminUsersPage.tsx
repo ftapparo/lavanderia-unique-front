@@ -5,6 +5,7 @@ import { Pencil, KeyRound, Plus, Trash2 } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
+import { SectionHeader } from "@/components/ui/composites";
 import { Button, Badge } from "@/components/ui/primitives";
 import { DataTable, type DataTableColumn, type DataTableAction, type DataTableBulkAction } from "@/components/ui/DataTable";
 import { api, type UserListItemPayload, type MembershipPayload } from "@/services/api";
@@ -163,12 +164,10 @@ export default function AdminUsersPage() {
       />
 
       <section className="space-y-4">
-        <div>
-          <h2 className="typo-section-title">Usuarios cadastrados</h2>
-          <p className="typo-caption text-muted-foreground">
-            {users.length} usuario{users.length !== 1 ? "s" : ""} no sistema.
-          </p>
-        </div>
+        <SectionHeader
+          title="Usuarios cadastrados"
+          description={`${users.length} usuario${users.length !== 1 ? "s" : ""} no sistema.`}
+        />
         <DataTable
           data={users}
           keyExtractor={(u) => u.id}
