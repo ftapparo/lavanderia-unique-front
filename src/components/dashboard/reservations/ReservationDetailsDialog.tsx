@@ -96,8 +96,7 @@ export default function ReservationDetailsDialog({
           ) : null}
           {reservation && canCancel(reservation.status) ? (
             <Button
-              variant="outline"
-              className="hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              variant="destructive"
               onClick={() => onOpenCancelDialog(reservation)}
             >
               Cancelar reserva

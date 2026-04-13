@@ -28,7 +28,7 @@ export default function MachineCard({ machine, onEdit, onToggleActive, onRemove 
           <Button
             size="sm"
             variant="outline"
-            className="hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+            className="text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
             onClick={() => onRemove(machine)}
           >
             Remover

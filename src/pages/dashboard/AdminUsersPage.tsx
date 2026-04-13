@@ -5,13 +5,18 @@ import { Pencil, KeyRound, Plus, Trash2 } from "lucide-react";
 
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { SectionHeader } from "@/components/ui/composites";
+import { ConfirmActionDialog, SectionHeader } from "@/components/ui/composites";
 import { Button, Badge } from "@/components/ui/primitives";
 import { DataTable, type DataTableColumn, type DataTableAction, type DataTableBulkAction } from "@/components/ui/DataTable";
 import { api, type UserListItemPayload, type MembershipPayload } from "@/services/api";
 import { notify } from "@/lib/notify";
 import ResetPasswordDialog from "@/components/dashboard/users/ResetPasswordDialog";
 import { getUserRoleLabel } from "@/lib/user-role-labels";
+
+type DeleteUsersDialogState = {
+  ids: string[];
+  description: string;
+};
 
 const ROLE_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   USER: "secondary",
@@ -42,6 +47,7 @@ export default function AdminUsersPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [resetUser, setResetUser] = useState<{ id: string; name: string } | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [deleteUsersDialog, setDeleteUsersDialog] = useState<DeleteUsersDialogState | null>(null);
 
   const usersQuery = useQuery({ queryKey: ["admin-users"], queryFn: api.users.list });
   const membershipsQuery = useQuery({ queryKey: ["admin-memberships"], queryFn: api.memberships.list });
@@ -86,11 +92,6 @@ export default function AdminUsersPage() {
 
   const deleteUser = useMutation({
     mutationFn: (id: string) => api.users.remove(id),
-    onSuccess: async () => {
-      notify.success("Usuario excluido.");
-      setDeleteId(null);
-      await reload();
-    },
     onError: (error) => {
       notify.error("Falha ao excluir usuario.", {
         description: error instanceof Error ? error.message : "Erro.",
@@ -109,9 +110,31 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = (user: UserListItemPayload) => {
-    if (!window.confirm(`Excluir o usuario "${user.name}"? Esta acao nao pode ser desfeita.`)) return;
-    setDeleteId(user.id);
-    deleteUser.mutate(user.id);
+    setDeleteUsersDialog({
+      ids: [user.id],
+      description: `Excluir o usuario "${user.name}"? Esta acao nao pode ser desfeita.`,
+    });
+  };
+
+  const confirmDeleteUsers = async () => {
+    if (!deleteUsersDialog) return;
+
+    const total = deleteUsersDialog.ids.length;
+    const [firstId] = deleteUsersDialog.ids;
+    if (firstId) setDeleteId(firstId);
+
+    await Promise.all(deleteUsersDialog.ids.map((id) => deleteUser.mutateAsync(id)));
+
+    if (total > 1) {
+      notify.success(`${total} usuario(s) excluido(s).`);
+      setSelectedKeys(new Set());
+    } else {
+      notify.success("Usuario excluido.");
+    }
+
+    setDeleteId(null);
+    setDeleteUsersDialog(null);
+    await reload();
   };
 
   const bulkActions = useMemo((): DataTableBulkAction<UserListItemPayload>[] => {
@@ -121,13 +144,10 @@ export default function AdminUsersPage() {
       label: selectedUsers.length > 1 ? "Excluir selecionados" : "Excluir",
       icon: Trash2,
       destructive: true,
-      onClick: async (rows) => {
-        if (!window.confirm(`Excluir ${rows.length} usuario(s)? Esta acao nao pode ser desfeita.`)) return;
-        await Promise.all(rows.map((u) => deleteUser.mutateAsync(u.id)));
-        setSelectedKeys(new Set());
-        await reload();
-        notify.success(`${rows.length} usuario(s) excluido(s).`);
-      },
+      onClick: (rows) => setDeleteUsersDialog({
+        ids: rows.map((row) => row.id),
+        description: `Excluir ${rows.length} usuario(s)? Esta acao nao pode ser desfeita.`,
+      }),
     };
 
     if (selectedUsers.length === 1) {
@@ -271,6 +291,20 @@ export default function AdminUsersPage() {
         userName={resetUser?.name ?? ""}
         isResetting={resetPassword.isPending}
         onConfirm={(password, mustChangePassword) => resetPassword.mutate({ password, mustChangePassword })}
+      />
+
+      <ConfirmActionDialog
+        open={deleteUsersDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteUsersDialog(null);
+        }}
+        title="Confirmar exclusao"
+        description={deleteUsersDialog?.description ?? ""}
+        confirmLabel="Excluir"
+        onConfirm={() => {
+          void confirmDeleteUsers();
+        }}
+        isConfirming={deleteUser.isPending}
       />
     </PageContainer>
   );

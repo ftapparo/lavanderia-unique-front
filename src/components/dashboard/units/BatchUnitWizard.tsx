@@ -11,6 +11,7 @@ import {
   Input,
   Label,
   Progress,
+  CardFooter,
 } from "@/components/ui/primitives";
 import { StepTimeline, type StepDef, type StepState } from "@/components/ui/StepTimeline";
 import { api } from "@/services/api";
@@ -99,6 +100,36 @@ export default function BatchUnitWizard() {
     setFinished(false);
   };
 
+  const doneConfirmation = () => {
+    return (
+      !(step === 3 && finished && progress) ? (
+        <div className="flex w-full justify-between border-t pt-6">
+          {step > 1 && !isGenerating ? (
+            <Button variant="outline" onClick={() => setStep((s) => (s - 1) as BatchStep)}>
+              Voltar
+            </Button>
+          ) : (
+            <div />
+          )}
+
+          {step < 3 ? (
+            <Button
+              onClick={() => setStep((s) => (s + 1) as BatchStep)}
+              disabled={step === 1 ? !isStep1Valid : !canAdvanceFromPreview}
+            >
+              Proximo
+            </Button>
+          ) : (
+            <Button onClick={() => void handleGenerate()} disabled={toCreate.length === 0 || isGenerating}>
+              {isGenerating ? "Gerando..." : "Gerar"}
+            </Button>
+          )}
+        </div>
+      ) : null
+    );
+  };
+
+
   const handleGenerate = async () => {
     if (!toCreate.length) {
       notify.error("Nenhuma unidade nova para criar nessa faixa.");
@@ -162,14 +193,14 @@ export default function BatchUnitWizard() {
 
       <div className="space-y-6 min-[1420px]:col-span-2">
         {step === 1 && (
-          <Card>
+          <Card className="min-h-[380px] flex flex-col">
             <CardHeader>
               <CardTitle>Etapa 1: parametros da geracao</CardTitle>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 Preencha em sequencia: primeiro andar inicial, depois andar final e por ultimo unidades por andar.
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1">
               <div className="space-y-1.5">
                 <Label htmlFor="bw-start-floor">1.1 Andar inicial</Label>
                 <p className="text-xs text-muted-foreground">Primeiro andar que entrara no processamento.</p>
@@ -218,18 +249,21 @@ export default function BatchUnitWizard() {
                 <p className="text-sm text-muted-foreground">Faixa valida. {previewPositions.length} posicao(oes) calculadas.</p>
               )}
             </CardContent>
+            <CardFooter className="w-full">
+              {doneConfirmation()}
+            </CardFooter>
           </Card>
         )}
 
         {step === 2 && (
-          <Card>
+          <Card className="min-h-[380px] flex flex-col">
             <CardHeader>
               <CardTitle>Etapa 2: previa detalhada</CardTitle>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 Esta etapa mostra o impacto da geracao: total previsto, criacoes novas e itens que serao ignorados.
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1">
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="rounded-lg border p-4">
                   <p className="text-3xl font-bold">{previewPositions.length}</p>
@@ -295,24 +329,27 @@ export default function BatchUnitWizard() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="w-full">
+              {doneConfirmation()}
+            </CardFooter>
           </Card>
         )}
 
         {step === 3 && (
-          <Card>
+          <Card className="min-h-[380px] flex flex-col">
             <CardHeader>
               <CardTitle>Etapa 3: execucao</CardTitle>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {finished && progress
                   ? (progress.errors > 0
-                      ? "Processamento concluido com falhas. Veja o resumo abaixo."
-                      : "Processamento concluido com sucesso.")
+                    ? "Processamento concluido com falhas. Veja o resumo abaixo."
+                    : "Processamento concluido com sucesso.")
                   : !isGenerating
-                  ? `Ao confirmar, ${toCreate.length} unidade(s) serao criadas e ${toSkip.length} serao ignoradas.`
-                  : "Processamento em andamento. Acompanhe o progresso abaixo."}
+                    ? `Ao confirmar, ${toCreate.length} unidade(s) serao criadas e ${toSkip.length} serao ignoradas.`
+                    : "Processamento em andamento. Acompanhe o progresso abaixo."}
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1">
               {isGenerating && progress ? (
                 <div className="space-y-4">
                   <Progress value={percent} className="h-2" />
@@ -373,33 +410,11 @@ export default function BatchUnitWizard() {
                 </div>
               ) : null}
             </CardContent>
+            <CardFooter className="w-full">
+              {doneConfirmation()}
+            </CardFooter>
           </Card>
         )}
-
-        {!(step === 3 && finished && progress) ? (
-          <div className="flex justify-between border-t pt-6">
-            {step > 1 && !isGenerating ? (
-              <Button variant="outline" onClick={() => setStep((s) => (s - 1) as BatchStep)}>
-                Voltar
-              </Button>
-            ) : (
-              <div />
-            )}
-
-            {step < 3 ? (
-              <Button
-                onClick={() => setStep((s) => (s + 1) as BatchStep)}
-                disabled={step === 1 ? !isStep1Valid : !canAdvanceFromPreview}
-              >
-                Proximo
-              </Button>
-            ) : (
-              <Button onClick={() => void handleGenerate()} disabled={toCreate.length === 0 || isGenerating}>
-                {isGenerating ? "Gerando..." : "Gerar"}
-              </Button>
-            )}
-          </div>
-        ) : null}
       </div>
     </div>
   );

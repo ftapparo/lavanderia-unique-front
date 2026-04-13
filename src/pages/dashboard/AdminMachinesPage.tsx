@@ -3,13 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { SectionHeader } from "@/components/ui/composites";
+import { ConfirmActionDialog, SectionHeader } from "@/components/ui/composites";
 import { Button } from "@/components/ui/primitives";
 import { api, type MachinePayload, type MachineType } from "@/services/api";
 import { notify } from "@/lib/notify";
 import MachineCard from "@/components/dashboard/machines/MachineCard";
 import MachineFormDialog from "@/components/dashboard/machines/MachineFormDialog";
-
 type MachineFormValues = {
   number: string;
   brand: string;
@@ -35,6 +34,7 @@ export default function AdminMachinesPage() {
 
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<MachineFormValues>(emptyForm);
+  const [deleteTargetMachine, setDeleteTargetMachine] = useState<MachinePayload | null>(null);
 
   const machinesQuery = useQuery({ queryKey: ["admin-machines"], queryFn: api.machines.list });
   const machines = useMemo(() => machinesQuery.data || [], [machinesQuery.data]);
@@ -131,7 +131,7 @@ export default function AdminMachinesPage() {
                 machine={machine}
                 onEdit={handleEdit}
                 onToggleActive={(item) => toggleMachine.mutate(item)}
-                onRemove={(item) => removeMachine.mutate(item.id)}
+                onRemove={(item) => setDeleteTargetMachine(item)}
               />
             ))}
           </div>
@@ -162,6 +162,25 @@ export default function AdminMachinesPage() {
         values={editForm}
         onChange={setEditForm}
         onSubmit={() => updateMachine.mutate()}
+      />
+
+      <ConfirmActionDialog
+        open={deleteTargetMachine !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetMachine(null);
+        }}
+        title="Confirmar exclusao"
+        description={deleteTargetMachine
+          ? `Excluir a maquina #${deleteTargetMachine.number} (${deleteTargetMachine.brand} ${deleteTargetMachine.model})? Esta acao nao pode ser desfeita.`
+          : ""}
+        confirmLabel="Excluir"
+        onConfirm={() => {
+          if (!deleteTargetMachine) return;
+          removeMachine.mutate(deleteTargetMachine.id, {
+            onSuccess: () => setDeleteTargetMachine(null),
+          });
+        }}
+        isConfirming={removeMachine.isPending}
       />
     </PageContainer>
   );

@@ -534,7 +534,7 @@ export default function AdminManageUnitLinksPage() {
                       {canDelete ? (
                         <DropdownMenuItem
                           onClick={() => requestDelete(slot.slotPosition)}
-                          className="hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
                         >
                           Excluir vínculo
                         </DropdownMenuItem>
@@ -762,11 +762,11 @@ export default function AdminManageUnitLinksPage() {
               Tem certeza que deseja excluir o vínculo deste slot? O histórico será preservado e o vínculo ativo será encerrado.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="w-full sm:justify-between">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="border border-input bg-background text-foreground hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir vínculo
             </AlertDialogAction>

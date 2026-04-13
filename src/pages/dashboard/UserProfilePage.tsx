@@ -13,6 +13,7 @@ import {
   Input,
   Label,
 } from "@/components/ui/primitives";
+import ConfirmActionDialog from "@/components/ui/composites/confirm-action-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import { notify } from "@/lib/notify";
@@ -85,6 +86,7 @@ export default function UserProfilePage() {
   const [photoMime, setPhotoMime] = useState<string | null>(null);
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [removePhotoDialog, setRemovePhotoDialog] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -153,6 +155,14 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleConfirmRemovePhoto = () => {
+    setPhotoPreview(null);
+    setPhotoBase64(null);
+    setPhotoMime(null);
+    setPhotoChanged(true);
+    setRemovePhotoDialog(false);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -183,13 +193,8 @@ export default function UserProfilePage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
-                  setPhotoPreview(null);
-                  setPhotoBase64(null);
-                  setPhotoMime(null);
-                  setPhotoChanged(true);
-                }}
+                className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setRemovePhotoDialog(true)}
               >
                 Remover
               </Button>
@@ -234,6 +239,16 @@ export default function UserProfilePage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmActionDialog
+        open={removePhotoDialog}
+        onOpenChange={setRemovePhotoDialog}
+        title="Remover foto"
+        description="Tem certeza que deseja remover sua foto de perfil? Esta ação não pode ser desfeita."
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmRemovePhoto}
+      />
     </PageContainer>
   );
 }

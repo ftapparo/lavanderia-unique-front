@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
   Input,
@@ -145,6 +146,35 @@ export default function SingleUnitWizard() {
   const canAdvanceFromDataStep = isFloorReady && isUnitReady && unitValidation === "available";
   const canAdvanceFromLinkStep = !linkEnabled || (!!selectedUser && !linkValidationError);
 
+  const doneConfirmation = () => {
+    return (
+      !done ? (
+        <div className="flex w-full justify-between border-t pt-6">
+          {step > 1 ? (
+            <Button variant="outline" onClick={() => setStep((s) => (s - 1) as Step)} disabled={isSubmitting}>
+              Voltar
+            </Button>
+          ) : (
+            <div />
+          )}
+
+          {step < 3 ? (
+            <Button
+              onClick={() => setStep((s) => (s + 1) as Step)}
+              disabled={step === 1 ? !canAdvanceFromDataStep : !canAdvanceFromLinkStep}
+            >
+              Proximo
+            </Button>
+          ) : (
+            <Button onClick={() => void handleConfirm()} disabled={isSubmitting}>
+              {isSubmitting ? "Criando..." : "Confirmar"}
+            </Button>
+          )}
+        </div>
+      ) : null
+    );
+  };
+
   const handleConfirm = async () => {
     if (linkEnabled && selectedUser && linkValidationError) {
       notify.error("Nao foi possivel criar o vinculo.", { description: linkValidationError });
@@ -191,14 +221,14 @@ export default function SingleUnitWizard() {
 
       <div className="space-y-6 min-[1420px]:col-span-2">
         {step === 1 && (
-          <Card>
+          <Card className="min-h-[380px] flex flex-col">
             <CardHeader>
               <CardTitle>Etapa 1: dados da unidade</CardTitle>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 Informe o andar e numero da unidade. O sistema verifica se a unidade ja existe para evitar duplicatas.
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1">
               <div className="space-y-1.5">
                 <Label htmlFor="su-floor">1.1 Andar</Label>
                 <p className="text-xs text-muted-foreground">Define a localizacao vertical da unidade no predio.</p>
@@ -242,18 +272,21 @@ export default function SingleUnitWizard() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="w-full">
+              {doneConfirmation()}
+            </CardFooter>
           </Card>
         )}
 
         {step === 2 && (
-          <Card>
+          <Card className="min-h-[380px] flex flex-col">
             <CardHeader>
               <CardTitle>Etapa 2: vinculo opcional</CardTitle>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 Decida se deseja vincular usuario agora. Se nao, a unidade sera criada sem vinculo.
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1">
               <div className="flex items-center justify-between gap-4 rounded-lg bg-muted/30 p-4">
                 <div>
                   <p className="text-sm font-medium">2.1 Vincular usuario agora?</p>
@@ -389,11 +422,14 @@ export default function SingleUnitWizard() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="w-full">
+              {doneConfirmation()}
+            </CardFooter>
           </Card>
         )}
 
         {step === 3 && (
-          <Card>
+          <Card className="min-h-[380px] flex flex-col">
             <CardHeader>
               <CardTitle>Etapa 3: {done ? "execucao" : "revisao"}</CardTitle>
               <p className="mt-0.5 text-sm text-muted-foreground">
@@ -402,7 +438,7 @@ export default function SingleUnitWizard() {
                   : "Confira os dados abaixo. A unidade sera criada com essas informacoes e nao podera haver outra unidade com mesmo andar e numero."}
               </p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1">
               {done ? (
                 <div className="space-y-5">
                   <div className="flex items-center gap-3">
@@ -491,33 +527,11 @@ export default function SingleUnitWizard() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="w-full">
+              {doneConfirmation()}
+            </CardFooter>
           </Card>
         )}
-
-        {!done ? (
-          <div className="flex justify-between border-t pt-6">
-          {step > 1 ? (
-            <Button variant="outline" onClick={() => setStep((s) => (s - 1) as Step)} disabled={isSubmitting}>
-              Voltar
-            </Button>
-          ) : (
-            <div />
-          )}
-
-          {step < 3 ? (
-            <Button
-              onClick={() => setStep((s) => (s + 1) as Step)}
-              disabled={step === 1 ? !canAdvanceFromDataStep : !canAdvanceFromLinkStep}
-            >
-              Proximo
-            </Button>
-          ) : (
-            <Button onClick={() => void handleConfirm()} disabled={isSubmitting}>
-              {isSubmitting ? "Criando..." : "Confirmar"}
-            </Button>
-          )}
-          </div>
-        ) : null}
       </div>
     </div>
   );

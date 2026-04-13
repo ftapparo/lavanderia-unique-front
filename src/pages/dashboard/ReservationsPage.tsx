@@ -531,107 +531,107 @@ export default function ReservationsPage() {
                 ))}
               </div>
 
-                {weekDays.map((day) => {
-                  const dayReservations = visibleDailyReservations.filter((reservation) => isSameDay(reservationDate(reservation), day));
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      className={`relative border-l ${getWeekendColumnClassName(day)}`}
-                      style={{ height: `${viewHeight}px` }}
-                      onClick={(event) => {
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        const offsetY = clamp(event.clientY - rect.top, 0, viewHeight);
-                        const hourFloat = WORK_DAY_START_HOUR + ((offsetY / HOUR_ROW_HEIGHT) * slotStepHours);
-                        const snapped = Math.floor(hourFloat / slotStepHours) * slotStepHours;
-                        openBookingModal(day, snapped);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          openBookingModal(day, WORK_DAY_START_HOUR);
-                        }
-                      }}
-                    >
-                      {hourlyMarks.map((hour) => (
-                        isPastReservationSlot(day, hour, serverNow) ? (
-                          <div
-                            key={`${day.toISOString()}-${hour}-past`}
-                            className="pointer-events-none absolute inset-x-0 bg-muted/[0.39]"
-                            style={{
-                              top: `${((hour - WORK_DAY_START_HOUR) / slotStepHours) * HOUR_ROW_HEIGHT}px`,
-                              height: `${HOUR_ROW_HEIGHT}px`,
-                            }}
-                          />
-                        ) : null
-                      ))}
-
-                      {hourlyMarks.map((hour) => (
+              {weekDays.map((day) => {
+                const dayReservations = visibleDailyReservations.filter((reservation) => isSameDay(reservationDate(reservation), day));
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={`relative border-l ${getWeekendColumnClassName(day)}`}
+                    style={{ height: `${viewHeight}px` }}
+                    onClick={(event) => {
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      const offsetY = clamp(event.clientY - rect.top, 0, viewHeight);
+                      const hourFloat = WORK_DAY_START_HOUR + ((offsetY / HOUR_ROW_HEIGHT) * slotStepHours);
+                      const snapped = Math.floor(hourFloat / slotStepHours) * slotStepHours;
+                      openBookingModal(day, snapped);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        openBookingModal(day, WORK_DAY_START_HOUR);
+                      }
+                    }}
+                  >
+                    {hourlyMarks.map((hour) => (
+                      isPastReservationSlot(day, hour, serverNow) ? (
                         <div
-                          key={`${day.toISOString()}-${hour}`}
-                          className="absolute inset-x-0 border-t border-dashed border-muted-foreground/20"
-                          style={{ top: `${((hour - WORK_DAY_START_HOUR) / slotStepHours) * HOUR_ROW_HEIGHT}px` }}
+                          key={`${day.toISOString()}-${hour}-past`}
+                          className="pointer-events-none absolute inset-x-0 bg-muted/[0.39]"
+                          style={{
+                            top: `${((hour - WORK_DAY_START_HOUR) / slotStepHours) * HOUR_ROW_HEIGHT}px`,
+                            height: `${HOUR_ROW_HEIGHT}px`,
+                          }}
                         />
-                      ))}
+                      ) : null
+                    ))}
 
-                      {dayReservations.map((reservation) => {
-                        const start = new Date(reservation.startAt);
-                        const end = new Date(reservation.endAt);
-                        const top = clamp(toTop(start), 0, viewHeight);
-                        const durationMs = Math.max(end.getTime() - start.getTime(), reservationDurationMs);
-                        const durationSlots = durationMs / reservationDurationMs;
-                        const height = clamp(durationSlots * HOUR_ROW_HEIGHT, HOUR_ROW_HEIGHT, viewHeight - top);
-                        const overlapping = dayReservations
-                          .filter((item) => new Date(item.startAt).getTime() === start.getTime())
-                          .sort((a, b) => a.machinePairName.localeCompare(b.machinePairName));
-                        const laneCount = Math.max(overlapping.length, 1);
-                        const laneIndex = Math.max(
-                          overlapping.findIndex((item) => item.id === reservation.id),
-                          0,
-                        );
-                        const widthPercent = 100 / laneCount;
-                        const leftPercent = laneIndex * widthPercent;
+                    {hourlyMarks.map((hour) => (
+                      <div
+                        key={`${day.toISOString()}-${hour}`}
+                        className="absolute inset-x-0 border-t border-dashed border-muted-foreground/20"
+                        style={{ top: `${((hour - WORK_DAY_START_HOUR) / slotStepHours) * HOUR_ROW_HEIGHT}px` }}
+                      />
+                    ))}
 
-                        return (
-                          <div
-                            key={reservation.id}
-                            className="absolute overflow-hidden rounded border border-primary/40 bg-primary/10 px-2 py-1 text-left shadow-sm"
-                            style={{
-                              top: `${top}px`,
-                              height: `${height}px`,
-                              left: `calc(${leftPercent}% + 2px)`,
-                              width: `calc(${widthPercent}% - 4px)`,
-                            }}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openReservationDetails(reservation);
-                            }}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="typo-caption font-medium">{reservation.machinePairName}</p>
-                              {canCancel(reservation.status) ? (
-                                <button
-                                  type="button"
-                                  className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/30"
-                                  aria-label="Cancelar reserva"
-                                  title="Cancelar reserva"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openCancelDialog(reservation);
-                                  }}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              ) : null}
-                            </div>
-                            <p className="typo-caption text-muted-foreground">Morador: {reservation.userName}</p>
-                            <p className="typo-caption text-muted-foreground">Apartamento: {reservation.unitName}</p>
+                    {dayReservations.map((reservation) => {
+                      const start = new Date(reservation.startAt);
+                      const end = new Date(reservation.endAt);
+                      const top = clamp(toTop(start), 0, viewHeight);
+                      const durationMs = Math.max(end.getTime() - start.getTime(), reservationDurationMs);
+                      const durationSlots = durationMs / reservationDurationMs;
+                      const height = clamp(durationSlots * HOUR_ROW_HEIGHT, HOUR_ROW_HEIGHT, viewHeight - top);
+                      const overlapping = dayReservations
+                        .filter((item) => new Date(item.startAt).getTime() === start.getTime())
+                        .sort((a, b) => a.machinePairName.localeCompare(b.machinePairName));
+                      const laneCount = Math.max(overlapping.length, 1);
+                      const laneIndex = Math.max(
+                        overlapping.findIndex((item) => item.id === reservation.id),
+                        0,
+                      );
+                      const widthPercent = 100 / laneCount;
+                      const leftPercent = laneIndex * widthPercent;
+
+                      return (
+                        <div
+                          key={reservation.id}
+                          className="absolute overflow-hidden rounded border border-primary/40 bg-primary/10 px-2 py-1 text-left shadow-sm"
+                          style={{
+                            top: `${top}px`,
+                            height: `${height}px`,
+                            left: `calc(${leftPercent}% + 2px)`,
+                            width: `calc(${widthPercent}% - 4px)`,
+                          }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openReservationDetails(reservation);
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="typo-caption font-medium">{reservation.machinePairName}</p>
+                            {canCancel(reservation.status) ? (
+                              <button
+                                type="button"
+                                className="rounded p-1 text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/30"
+                                aria-label="Cancelar reserva"
+                                title="Cancelar reserva"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openCancelDialog(reservation);
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            ) : null}
                           </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                          <p className="typo-caption text-muted-foreground">Morador: {reservation.userName}</p>
+                          <p className="typo-caption text-muted-foreground">Apartamento: {reservation.unitName}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -699,7 +699,7 @@ export default function ReservationsPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-8 w-8 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                                 aria-label="Cancelar reserva"
                                 title="Cancelar reserva"
                                 onClick={() => openCancelDialog(reservation)}

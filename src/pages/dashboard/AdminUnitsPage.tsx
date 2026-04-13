@@ -4,18 +4,24 @@ import { Eye, EyeOff, Plus, Settings2, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { SectionHeader } from "@/components/ui/composites";
+import { ConfirmActionDialog, SectionHeader } from "@/components/ui/composites";
 import { DataTable, type DataTableAction, type DataTableBulkAction, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/primitives";
 import { api, type MembershipPayload, type UnitPayload } from "@/services/api";
 import { notify } from "@/lib/notify";
 import { PROFILE_LABELS, isMembershipActiveNow } from "@/lib/membership-rules";
 
+type DeleteUnitsDialogState = {
+  ids: string[];
+  description: string;
+};
+
 export default function AdminUnitsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [deleteUnitsDialog, setDeleteUnitsDialog] = useState<DeleteUnitsDialogState | null>(null);
 
   const unitsQuery = useQuery({ queryKey: ["admin-units"], queryFn: api.units.list });
   const membershipsQuery = useQuery({ queryKey: ["admin-memberships"], queryFn: api.memberships.list });
@@ -58,9 +64,22 @@ export default function AdminUnitsPage() {
 
   const removeUnit = useMutation({
     mutationFn: (id: string) => api.units.remove(id),
-    onSuccess: async () => { notify.success("Unidade excluida."); await reload(); },
     onError: (error) => notify.error("Falha ao excluir unidade.", { description: error instanceof Error ? error.message : "Erro." }),
   });
+
+  const confirmDeleteUnits = async () => {
+    if (!deleteUnitsDialog) return;
+
+    await Promise.all(deleteUnitsDialog.ids.map((id) => removeUnit.mutateAsync(id)));
+    if (deleteUnitsDialog.ids.length > 1) {
+      notify.success(`${deleteUnitsDialog.ids.length} unidade(s) excluida(s).`);
+      setSelectedKeys(new Set());
+    } else {
+      notify.success("Unidade excluida.");
+    }
+    setDeleteUnitsDialog(null);
+    await reload();
+  };
 
   const columns: DataTableColumn<UnitPayload>[] = [
     {
@@ -130,10 +149,10 @@ export default function AdminUnitsPage() {
     {
       label: "Excluir",
       icon: Trash2,
-      onClick: (u) => {
-        if (!window.confirm(`Excluir a unidade "${u.code}"? Esta acao nao pode ser desfeita.`)) return;
-        removeUnit.mutate(u.id);
-      },
+      onClick: (u) => setDeleteUnitsDialog({
+        ids: [u.id],
+        description: `Excluir a unidade "${u.code}"? Esta acao nao pode ser desfeita.`,
+      }),
       destructive: true,
       separator: true,
       disabled: () => removeUnit.isPending,
@@ -175,13 +194,10 @@ export default function AdminUnitsPage() {
       label: selectedUnits.length > 1 ? "Excluir selecionadas" : "Excluir",
       icon: Trash2,
       destructive: true,
-      onClick: async (rows) => {
-        if (!window.confirm(`Excluir ${rows.length} unidade(s)? Esta acao nao pode ser desfeita.`)) return;
-        await Promise.all(rows.map((r) => removeUnit.mutateAsync(r.id)));
-        setSelectedKeys(new Set());
-        await reload();
-        notify.success(`${rows.length} unidade(s) excluida(s).`);
-      },
+      onClick: (rows) => setDeleteUnitsDialog({
+        ids: rows.map((row) => row.id),
+        description: `Excluir ${rows.length} unidade(s)? Esta acao nao pode ser desfeita.`,
+      }),
     };
 
     if (selectedUnits.length === 1) {
@@ -234,6 +250,20 @@ export default function AdminUnitsPage() {
           defaultSortDirection="asc"
         />
       </section>
+
+      <ConfirmActionDialog
+        open={deleteUnitsDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteUnitsDialog(null);
+        }}
+        title="Confirmar exclusao"
+        description={deleteUnitsDialog?.description ?? ""}
+        confirmLabel="Excluir"
+        onConfirm={() => {
+          void confirmDeleteUnits();
+        }}
+        isConfirming={removeUnit.isPending}
+      />
     </PageContainer>
   );
 }

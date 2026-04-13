@@ -179,7 +179,7 @@ export function DataTable<T>({
                 key={action.label}
                 size="sm"
                 variant="outline"
-                className={action.destructive ? "hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive" : undefined}
+                className={action.destructive ? "text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive" : undefined}
                 onClick={() => action.onClick(selectedRows)}
                 disabled={action.disabled?.(selectedRows)}
               >
@@ -272,7 +272,7 @@ export function DataTable<T>({
                               <DropdownMenuItem
                                 onClick={() => action.onClick(row)}
                                 disabled={action.disabled?.(row) || action.isLoading?.(row)}
-                                className={action.destructive ? "hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive" : ""}
+                                className={action.destructive ? "text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive" : ""}
                               >
                                 <action.icon className="mr-2 h-4 w-4" />
                                 {action.isLoading?.(row) && action.loadingLabel

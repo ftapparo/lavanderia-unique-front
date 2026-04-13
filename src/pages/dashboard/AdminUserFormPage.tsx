@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/primitives";
+import ConfirmActionDialog from "@/components/ui/composites/confirm-action-dialog";
 import { api } from "@/services/api";
 import { notify } from "@/lib/notify";
 import { USER_ROLE_LABELS } from "@/lib/user-role-labels";
@@ -135,6 +136,7 @@ export default function AdminUserFormPage() {
   const [photoMime, setPhotoMime] = useState<string | null>(null);
   const [photoChanged, setPhotoChanged] = useState(false);
   const [generatedPin, setGeneratedPin] = useState<string | null>(null);
+  const [removePhotoDialog, setRemovePhotoDialog] = useState(false);
 
   const userQuery = useQuery({
     queryKey: ["admin-user", id],
@@ -268,6 +270,14 @@ export default function AdminUserFormPage() {
     createUser.mutate();
   };
 
+  const handleConfirmRemovePhoto = () => {
+    setPhotoPreview(null);
+    setPhotoBase64(null);
+    setPhotoMime(null);
+    setPhotoChanged(true);
+    setRemovePhotoDialog(false);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -301,13 +311,8 @@ export default function AdminUserFormPage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
-                  setPhotoPreview(null);
-                  setPhotoBase64(null);
-                  setPhotoMime(null);
-                  setPhotoChanged(true);
-                }}
+                className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => setRemovePhotoDialog(true)}
               >
                 Remover
               </Button>
@@ -438,6 +443,16 @@ export default function AdminUserFormPage() {
           </Button>
         </div>
       ) : null}
+
+      <ConfirmActionDialog
+        open={removePhotoDialog}
+        onOpenChange={setRemovePhotoDialog}
+        title="Remover foto"
+        description="Tem certeza que deseja remover sua foto de perfil? Esta ação não pode ser desfeita."
+        confirmLabel="Remover"
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmRemovePhoto}
+      />
     </PageContainer>
   );
 }

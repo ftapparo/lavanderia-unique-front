@@ -14,3 +14,4 @@ export { TableCardSection } from "./table-card-section";
 export type { TableCardSectionProps } from "./table-card-section";
 export type { TableColumn, TableDataset } from "./table.types";
 export { SectionHeader } from "./section-header";
+export { ConfirmActionDialog } from "./confirm-action-dialog";

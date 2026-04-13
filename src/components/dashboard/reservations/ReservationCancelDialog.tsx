@@ -39,13 +39,12 @@ export default function ReservationCancelDialog({
           </div>
         ) : null}
 
-        <DialogFooter>
+        <DialogFooter className="w-full sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Voltar
+            Cancelar
           </Button>
           <Button
-            variant="outline"
-            className="hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+            variant="destructive"
             onClick={onConfirmCancel}
             disabled={cancelPending}
           >
