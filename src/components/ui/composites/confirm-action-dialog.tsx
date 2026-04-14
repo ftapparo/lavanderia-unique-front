@@ -52,3 +52,5 @@ export function ConfirmActionDialog({
         </AlertDialog>
     );
 }
+
+export default ConfirmActionDialog;

@@ -21,12 +21,17 @@ describe("AppSidebar", () => {
   it("renders all expected menu items", () => {
     render(<AppSidebar />, { wrapper: Wrapper });
 
-    expect(screen.getByText("Visao Geral")).toBeInTheDocument();
-    expect(screen.getByText("Reservas")).toBeInTheDocument();
-    expect(screen.getByText("Configuracoes")).toBeInTheDocument();
-    expect(screen.getByText("Admin Unidades")).toBeInTheDocument();
-    expect(screen.getByText("Admin Maquinas")).toBeInTheDocument();
-    expect(screen.getByText("Admin Pares")).toBeInTheDocument();
-    expect(screen.getByText("Admin Vinculos")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Visao Geral" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reservas" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Configuracoes" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Jobs" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ocorrencias" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Faturamento" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sistema" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Usuarios" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Unidades" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Maquinas" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Pares" })).toBeInTheDocument();
   });
 });

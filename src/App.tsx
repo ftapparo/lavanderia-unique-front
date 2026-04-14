@@ -4,6 +4,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ActiveUnitProvider } from "@/contexts/ActiveUnitContext";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { restoreThemeFromStorage } from "@/utils/theme-palette";
+
+// Restaura paleta e radius salvos antes de renderizar, para evitar flash
+restoreThemeFromStorage();
 import Login from "./pages/Login";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -22,6 +26,7 @@ import AdminAddBatchUnitPage from "./pages/dashboard/AdminAddBatchUnitPage";
 import AdminMachinesPage from "./pages/dashboard/AdminMachinesPage";
 import AdminMachinePairsPage from "./pages/dashboard/AdminMachinePairsPage";
 import AdminOpsDashboardPage from "./pages/dashboard/AdminOpsDashboardPage";
+import AdminJobsPage from "./pages/dashboard/AdminJobsPage";
 import AdminIncidentsPage from "./pages/dashboard/AdminIncidentsPage";
 import AdminBillingPage from "./pages/dashboard/AdminBillingPage";
 import AdminSystemSettingsPage from "./pages/dashboard/AdminSystemSettingsPage";
@@ -93,6 +98,7 @@ const App = () => (
                 <Route path="admin/usuarios/novo" element={<AdminRoute><AdminUserFormPage /></AdminRoute>} />
                 <Route path="admin/usuarios/:id/editar" element={<AdminRoute><AdminUserFormPage /></AdminRoute>} />
                 <Route path="admin/dashboard" element={<AdminRoute><AdminOpsDashboardPage /></AdminRoute>} />
+                <Route path="admin/jobs" element={<AdminRoute><AdminJobsPage /></AdminRoute>} />
                 <Route path="admin/ocorrencias" element={<AdminRoute><AdminIncidentsPage /></AdminRoute>} />
                 <Route path="admin/faturamento" element={<AdminRoute><AdminBillingPage /></AdminRoute>} />
                 <Route path="admin/sistema" element={<AdminRoute><AdminSystemSettingsPage /></AdminRoute>} />

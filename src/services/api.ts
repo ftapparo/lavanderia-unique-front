@@ -406,6 +406,7 @@ export interface SystemSettingsPayload {
   billingMode: "PER_USE" | "PER_KWH";
   pricePerUse: number;
   pricePerKwh: number;
+  chargeNoShow: boolean;
   updatedByUserId: string | null;
   updatedAt: string;
 }
@@ -480,6 +481,29 @@ export interface AdminActiveSessionPayload {
   machinePairName: string;
   startedAt: string;
   overtimeStartedAt: string | null;
+}
+
+export interface AdminJobRuntimeStatePayload {
+  lastStartedAt: string | null;
+  lastFinishedAt: string | null;
+  lastStatus: "SUCCESS" | "ERROR" | "RUNNING" | "IDLE";
+  lastError: string | null;
+  runCount: number;
+  successCount: number;
+  errorCount: number;
+  cronExpression: string;
+  active: boolean;
+}
+
+export interface AdminJobConfigPayload {
+  name: string;
+  description: string;
+  cron_expression: string;
+  active: boolean;
+  need_update: boolean;
+  updated_by_user_id: string | null;
+  updated_at: string;
+  runtimeState: AdminJobRuntimeStatePayload | null;
 }
 
 export const api = {
@@ -603,5 +627,8 @@ export const api = {
     opsHealth: () => request<AdminOpsHealthPayload>("GET", "/admin/ops/health"),
     activeSessions: () => request<AdminActiveSessionPayload[]>("GET", "/admin/ops/active-sessions"),
     reconcileSession: (id: string) => request<LaundrySessionPayload>("POST", `/admin/ops/reconcile-session/${id}`),
+    listJobs: () => request<AdminJobConfigPayload[]>("GET", "/admin/jobs"),
+    updateJob: (name: string, input: { description?: string; cronExpression?: string; active?: boolean }) =>
+      request<AdminJobConfigPayload>("PATCH", `/admin/jobs/${name}`, input),
   },
 };
