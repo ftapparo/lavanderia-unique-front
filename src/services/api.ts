@@ -441,6 +441,26 @@ export interface InvoiceDetailsPayload extends InvoicePayload {
   items: InvoiceItemPayload[];
 }
 
+export interface MaintenancePayload {
+  id: string;
+  machineId: string;
+  machineName: string;
+  machineNumber: number;
+  machineBrand: string;
+  machineModel: string;
+  machineType: MachineType;
+  startedAt: string;
+  endedAt: string | null;
+  problem: string;
+  solution: string | null;
+  createdByUserId: string | null;
+  createdByUserName: string | null;
+  closedByUserId: string | null;
+  closedByUserName: string | null;
+  deletedAt: string | null;
+  createdAt: string;
+}
+
 export interface AdminDashboardPayload {
   reservationsTotal: number;
   sessionsTotal: number;
@@ -621,6 +641,15 @@ export const api = {
   invoices: {
     list: () => request<InvoicePayload[]>("GET", "/invoices"),
     getById: (id: string) => request<InvoiceDetailsPayload>("GET", `/invoices/${id}`),
+  },
+  maintenances: {
+    list: () => request<MaintenancePayload[]>("GET", "/maintenances"),
+    listByMachine: (machineId: string) => request<MaintenancePayload[]>("GET", `/machines/${machineId}/maintenances`),
+    open: (machineId: string, input: { problem: string; startedAt?: string }) =>
+      request<MaintenancePayload>("POST", `/machines/${machineId}/maintenances`, input),
+    close: (id: string, input: { solution?: string | null; endedAt?: string }) =>
+      request<MaintenancePayload>("PATCH", `/maintenances/${id}/close`, input),
+    cancel: (id: string) => request<null>("DELETE", `/maintenances/${id}`),
   },
   admin: {
     dashboard: () => request<AdminDashboardPayload>("GET", "/admin/dashboard"),

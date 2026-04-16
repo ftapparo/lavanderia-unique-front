@@ -9,6 +9,7 @@ import { api, type MachinePayload, type MachineType } from "@/services/api";
 import { notify } from "@/lib/notify";
 import MachineCard from "@/components/dashboard/machines/MachineCard";
 import MachineFormDialog from "@/components/dashboard/machines/MachineFormDialog";
+import MaintenanceFormDialog, { type MaintenanceFormValues } from "@/components/dashboard/machines/MaintenanceFormDialog";
 type MachineFormValues = {
   number: string;
   brand: string;
@@ -35,6 +36,7 @@ export default function AdminMachinesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<MachineFormValues>(emptyForm);
   const [deleteTargetMachine, setDeleteTargetMachine] = useState<MachinePayload | null>(null);
+  const [maintenanceMachine, setMaintenanceMachine] = useState<MachinePayload | null>(null);
 
   const machinesQuery = useQuery({ queryKey: ["admin-machines"], queryFn: api.machines.list });
   const machines = useMemo(() => machinesQuery.data || [], [machinesQuery.data]);
@@ -85,6 +87,20 @@ export default function AdminMachinesPage() {
     onError: (error) => notify.error("Falha ao alterar status da maquina.", { description: error instanceof Error ? error.message : "Erro." }),
   });
 
+  const createMaintenance = useMutation({
+    mutationFn: (values: MaintenanceFormValues) =>
+      api.maintenances.open(maintenanceMachine!.id, {
+        problem: values.problem,
+        startedAt: values.startedAt!.toISOString(),
+      }),
+    onSuccess: async () => {
+      notify.success("Manutenção registrada.");
+      setMaintenanceMachine(null);
+      await queryClient.invalidateQueries({ queryKey: ["admin-maintenances"] });
+    },
+    onError: (error) => notify.error("Falha ao registrar manutenção.", { description: error instanceof Error ? error.message : "Erro." }),
+  });
+
   const removeMachine = useMutation({
     mutationFn: (id: string) => api.machines.remove(id),
     onSuccess: async () => {
@@ -132,6 +148,7 @@ export default function AdminMachinesPage() {
                 onEdit={handleEdit}
                 onToggleActive={(item) => toggleMachine.mutate(item)}
                 onRemove={(item) => setDeleteTargetMachine(item)}
+                onMaintenance={(item) => setMaintenanceMachine(item)}
               />
             ))}
           </div>
@@ -163,6 +180,16 @@ export default function AdminMachinesPage() {
         onChange={setEditForm}
         onSubmit={() => updateMachine.mutate()}
       />
+
+      {maintenanceMachine && (
+        <MaintenanceFormDialog
+          open={maintenanceMachine !== null}
+          onOpenChange={(open) => { if (!open) setMaintenanceMachine(null); }}
+          machine={maintenanceMachine}
+          isSubmitting={createMaintenance.isPending}
+          onSubmit={(values) => createMaintenance.mutate(values)}
+        />
+      )}
 
       <ConfirmActionDialog
         open={deleteTargetMachine !== null}

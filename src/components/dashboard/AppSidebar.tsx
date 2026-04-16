@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2, Gauge, AlertTriangle, FileSpreadsheet, SlidersHorizontal, Users, TimerReset } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarClock, Building2, WashingMachine, Link2, Gauge, AlertTriangle, FileSpreadsheet, SlidersHorizontal, Users, TimerReset, ClipboardList } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
@@ -41,6 +41,7 @@ const adminPeopleItems: NavItem[] = [
 const adminEquipmentItems: NavItem[] = [
   { title: "Maquinas", url: "/dashboard/admin/maquinas", icon: WashingMachine },
   { title: "Pares", url: "/dashboard/admin/pares", icon: Link2 },
+  { title: "Informativos", url: "/dashboard/admin/informativos", icon: ClipboardList },
 ];
 
 function NavItems({ items, isCollapsed }: { items: NavItem[]; isCollapsed: boolean }) {

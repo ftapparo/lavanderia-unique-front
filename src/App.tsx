@@ -28,6 +28,7 @@ import AdminMachinePairsPage from "./pages/dashboard/AdminMachinePairsPage";
 import AdminOpsDashboardPage from "./pages/dashboard/AdminOpsDashboardPage";
 import AdminJobsPage from "./pages/dashboard/AdminJobsPage";
 import AdminIncidentsPage from "./pages/dashboard/AdminIncidentsPage";
+import AdminNoticesPage from "./pages/dashboard/AdminNoticesPage";
 import AdminBillingPage from "./pages/dashboard/AdminBillingPage";
 import AdminSystemSettingsPage from "./pages/dashboard/AdminSystemSettingsPage";
 import AdminUsersPage from "./pages/dashboard/AdminUsersPage";
@@ -100,6 +101,7 @@ const App = () => (
                 <Route path="admin/dashboard" element={<AdminRoute><AdminOpsDashboardPage /></AdminRoute>} />
                 <Route path="admin/jobs" element={<AdminRoute><AdminJobsPage /></AdminRoute>} />
                 <Route path="admin/ocorrencias" element={<AdminRoute><AdminIncidentsPage /></AdminRoute>} />
+                <Route path="admin/informativos" element={<AdminRoute><AdminNoticesPage /></AdminRoute>} />
                 <Route path="admin/faturamento" element={<AdminRoute><AdminBillingPage /></AdminRoute>} />
                 <Route path="admin/sistema" element={<AdminRoute><AdminSystemSettingsPage /></AdminRoute>} />
                 <Route path="perfil" element={<UserProfilePage />} />
